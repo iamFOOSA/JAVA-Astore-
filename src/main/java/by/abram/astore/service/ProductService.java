@@ -20,7 +20,7 @@ public class ProductService {
     public List<ProductDto> getAllProducts() {
         return productRepository.findAll().stream()
                 .map(productMapper::toDto)
-                .collect(Collectors.toList());
+                .toList();
     }
 
     public ProductDto getProductById(Long id) {
@@ -32,6 +32,6 @@ public class ProductService {
     public List<ProductDto> getProductsByCategory(String category) {
         return productRepository.findByCategory(category).stream()
                 .map(productMapper::toDto)
-                .collect(Collectors.toList());
+                .toList();
     }
 }
