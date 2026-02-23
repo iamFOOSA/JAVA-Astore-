@@ -123,3 +123,8 @@ logs/
 *.swp
 *.swo
 *~
+
+.mvn/
+.gitattributes
+mvnw
+mvnw.cmd
