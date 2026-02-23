@@ -128,3 +128,4 @@ logs/
 .gitattributes
 mvnw
 mvnw.cmd
+.env
