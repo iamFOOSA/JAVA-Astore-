@@ -17,15 +17,4 @@ public class ProductMapper {
         dto.setCategory(product.getCategory());
         return dto;
     }
-
-    public Product toEntity(ProductDto dto) {
-        Product product = new Product();
-        product.setId(dto.getId());
-        product.setName(dto.getName());
-        product.setDescription(dto.getDescription());
-        product.setPrice(dto.getPrice());
-        product.setQuantity(dto.getQuantity());
-        product.setCategory(dto.getCategory());
-        return product;
-    }
 }
