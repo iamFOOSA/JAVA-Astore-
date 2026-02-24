@@ -2,6 +2,7 @@ package by.abram.astore.entity;
 
 import jakarta.persistence.*;
 import lombok.Data;
+
 import java.math.BigDecimal;
 
 @Data

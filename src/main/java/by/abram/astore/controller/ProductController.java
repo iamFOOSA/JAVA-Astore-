@@ -15,8 +15,7 @@ public class ProductController {
     private final ProductService productService;
 
     @GetMapping
-    public List<ProductDto> getProducts(
-            @RequestParam(required = false) String category) {
+    public List<ProductDto> getProducts(@RequestParam(required = false) String category) {
         if (category != null) {
             return productService.getProductsByCategory(category);
         }

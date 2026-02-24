@@ -1,6 +1,7 @@
 package by.abram.astore.dto;
 
 import lombok.Data;
+
 import java.math.BigDecimal;
 
 @Data

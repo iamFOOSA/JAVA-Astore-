@@ -17,22 +17,16 @@ public class ProductService {
     private final ProductMapper productMapper;
 
 
-
     public List<ProductDto> getAllProducts() {
-        return productRepository.findAll().stream()
-                .map(productMapper::toDto)
-                .toList();
+        return productRepository.findAll().stream().map(productMapper::toDto).toList();
     }
 
     public ProductDto getProductById(Long id) {
-        Product product = productRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Product not found with id: " + id));
+        Product product = productRepository.findById(id).orElseThrow(() -> new RuntimeException("Product not found with id: " + id));
         return productMapper.toDto(product);
     }
 
     public List<ProductDto> getProductsByCategory(String category) {
-        return productRepository.findByCategory(category).stream()
-                .map(productMapper::toDto)
-                .toList();
+        return productRepository.findByCategory(category).stream().map(productMapper::toDto).toList();
     }
 }
