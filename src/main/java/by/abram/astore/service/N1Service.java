@@ -3,10 +3,12 @@ package by.abram.astore.service;
 import by.abram.astore.entity.Product;
 import by.abram.astore.repository.ProductRepository;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import java.util.List;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class N1Service {
@@ -17,27 +19,27 @@ public class N1Service {
     public void showN1Problem() {
         List<Product> products = productRepository.findAll();
 
-        System.out.println(".  ДЕМОНСТРАЦИЯ N+1 ПРОБЛЕМЫ ");
-        System.out.println("Загружено " + products.size() + " продуктов");
+        log.info(".  ДЕМОНСТРАЦИЯ N+1 ПРОБЛЕМЫ ");
+        log.info("Загружено {} продуктов", products.size());
 
         for (Product product : products) {
-            System.out.println("Product: " + product.getName() +
-                    ", Categories: " + product.getCategories().size());
+            log.info("Product: {}, Categories: {}",
+                    product.getName(), product.getCategories().size());
         }
-        System.out.println("   N+1 ПРОБЛЕМА ДЕМОНСТРИРОВАНА");
+        log.info("   N+1 ПРОБЛЕМА ДЕМОНСТРИРОВАНА");
     }
 
     @Transactional(readOnly = true)
     public void solveN1Problem() {
         List<Product> products = productRepository.findAllWithDetails();
 
-        System.out.println("    ДЕМОНСТРАЦИЯ РЕШЕНИЯ N+1    ");
-        System.out.println("Загружено " + products.size() + " продуктов");
+        log.info("    ДЕМОНСТРАЦИЯ РЕШЕНИЯ N+1    ");
+        log.info("Загружено {} продуктов", products.size());
 
         for (Product product : products) {
-            System.out.println("Product: " + product.getName() +
-                    ", Categories: " + product.getCategories().size());
+            log.info("Product: {}, Categories: {}",
+                    product.getName(), product.getCategories().size());
         }
-        System.out.println("    N+1 ПРОБЛЕМА РЕШЕНА    ");
+        log.info("    N+1 ПРОБЛЕМА РЕШЕНА    ");
     }
 }

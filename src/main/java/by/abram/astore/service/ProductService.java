@@ -8,7 +8,6 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import java.util.List;
-import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -21,7 +20,7 @@ public class ProductService {
     public List<ProductDto> getAllProducts() {
         return productRepository.findAll().stream()
                 .map(productMapper::toDto)
-                .collect(Collectors.toList());
+                .toList();
     }
 
     @Transactional(readOnly = true)
@@ -35,6 +34,6 @@ public class ProductService {
     public List<ProductDto> getProductsByName(String name) {
         return productRepository.findByNameContaining(name).stream()
                 .map(productMapper::toDto)
-                .collect(Collectors.toList());
+                .toList();
     }
 }
