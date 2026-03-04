@@ -19,9 +19,10 @@ public class ProductController {
     private final ProductService productService;
 
     @GetMapping
-    public List<ProductDto> getProducts(@RequestParam(required = false) String category) {
-        if (category != null) {
-            return productService.getProductsByCategory(category);
+    public List<ProductDto> getProducts(
+            @RequestParam(required = false) String name) {
+        if (name != null) {
+            return productService.getProductsByName(name);
         }
         return productService.getAllProducts();
     }
