@@ -29,7 +29,7 @@ public class DataInitializer implements CommandLineRunner {
     private final UserRepository userRepository;
     private final OrderRepository orderRepository;
     private final ItemRepository itemRepository;
-    private static final String MACBOOK = "Apple MacBook Pro 16\"";
+    private static final String MACBOOK_NAME = "Apple MacBook Pro 16\"";
 
     @Override
     @Transactional
@@ -74,8 +74,8 @@ public class DataInitializer implements CommandLineRunner {
                 "Samsung Galaxy S24 Ultra, 512GB, Black - 6.8\" Dynamic AMOLED, Snapdragon 8 Gen 3",
                 new BigDecimal("129990"), 30, Arrays.asList(electronics, smartphones));
 
-        createProductIfNotExists("MACBOOK\"",
-                "MACBOOK\" M3 Max, 32GB, 1TB - Liquid Retina XDR display, 12-core M3 Max processor",
+        createProductIfNotExists(MACBOOK_NAME,
+                MACBOOK_NAME + "M3 Max, 32GB, 1TB - Liquid Retina XDR display, 12-core M3 Max processor",
                 new BigDecimal("349990"), 15, Arrays.asList(electronics, laptops));
 
         createProductIfNotExists("Sony A7IV",
@@ -135,11 +135,11 @@ public class DataInitializer implements CommandLineRunner {
                 new ProductOrder("Sony A7IV", 1));
 
         createOrder(john, LocalDateTime.of(2026, 2, 20, 14, 45), Status.PROCESSING,
-                new ProductOrder("MACBOOK\"", 1));
+                new ProductOrder(MACBOOK_NAME, 1));
 
         createOrder(jane, LocalDateTime.of(2026, 2, 18, 11, 20), Status.DELIVERED,
                 new ProductOrder("Samsung Galaxy S24 Ultra", 1),
-                new ProductOrder("MACBOOK\"", 1));
+                new ProductOrder(MACBOOK_NAME, 1));
     }
 
     private void createOrder(User user, LocalDateTime orderDate, Status status,
