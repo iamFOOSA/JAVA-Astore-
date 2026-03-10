@@ -23,7 +23,7 @@ public class ItemService {
     private final OrderRepository orderRepository;
     private final ProductRepository productRepository;
     private final ItemMapper itemMapper;
-    private final static String EXCEPTION_TEXT = "Item not found, id: ";
+    private final String EXCEPTION_TEXT = "Item not found, id: ";
 
     @Transactional
     public ItemDto create(Long orderId, ItemDto dto) {
