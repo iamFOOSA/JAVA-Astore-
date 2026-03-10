@@ -14,7 +14,6 @@ import java.util.List;
 @Service
 @RequiredArgsConstructor
 public class CategoryService {
-    private static final String EXCEPTION_TEXT = "Category not found, id: ";
     private final CategoryRepository categoryRepository;
     private final CategoryMapper categoryMapper;
 
@@ -28,7 +27,7 @@ public class CategoryService {
     public CategoryDto findById(Long id) {
         return categoryRepository.findById(id)
                 .map(categoryMapper::toDto)
-                .orElseThrow(() -> new EntityNotFoundException(EXCEPTION_TEXT + id));
+                .orElseThrow(() -> new EntityNotFoundException("Category not found" + id));
     }
 
     @Transactional(readOnly = true)
@@ -41,7 +40,7 @@ public class CategoryService {
     @Transactional
     public CategoryDto update(Long id, CategoryDto dto) {
         if (!categoryRepository.existsById(id)) {
-            throw new EntityNotFoundException(EXCEPTION_TEXT + id);
+            throw new EntityNotFoundException("Category not found with id" + id);
         }
         Category category = categoryMapper.toEntity(dto);
         category.setId(id);

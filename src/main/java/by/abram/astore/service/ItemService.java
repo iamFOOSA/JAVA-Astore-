@@ -23,7 +23,6 @@ public class ItemService {
     private final OrderRepository orderRepository;
     private final ProductRepository productRepository;
     private final ItemMapper itemMapper;
-    private final String EXCEPTION_TEXT = "Item not found, id: ";
 
     @Transactional
     public ItemDto create(Long orderId, ItemDto dto) {
@@ -53,7 +52,7 @@ public class ItemService {
     public ItemDto findById(Long id) {
         return itemRepository.findById(id)
                 .map(itemMapper::toDto)
-                .orElseThrow(() -> new EntityNotFoundException(EXCEPTION_TEXT + id));
+                .orElseThrow(() -> new EntityNotFoundException("Item not found with id" + id));
     }
 
     @Transactional(readOnly = true)
@@ -66,7 +65,7 @@ public class ItemService {
     @Transactional
     public ItemDto update(Long id, ItemDto dto) {
         Item item = itemRepository.findById(id)
-                .orElseThrow(() -> new EntityNotFoundException(EXCEPTION_TEXT + id));
+                .orElseThrow(() -> new EntityNotFoundException("Item not found" + id));
 
         item.setQuantity(dto.getQuantity());
 
