@@ -1,7 +1,7 @@
 package by.abram.astore.controller;
 
-import by.abram.astore.dto.CategoryDto;
-import by.abram.astore.service.CategoryService;
+import by.abram.astore.dto.UserDto;
+import by.abram.astore.service.UserService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -14,39 +14,30 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import java.util.List;
-
 @RestController
-@RequestMapping("/api/categories")
+@RequestMapping("/api/users")
 @RequiredArgsConstructor
-public class CategoryController {
-
-    private final CategoryService categoryService;
+public class UserController {
+    private final UserService userService;
 
     @PostMapping
-    public ResponseEntity<CategoryDto> create(@RequestBody CategoryDto categoryDto) {
-        return ResponseEntity.status(HttpStatus.CREATED)
-                .body(categoryService.create(categoryDto));
-    }
-
-    @GetMapping
-    public ResponseEntity<List<CategoryDto>> findAll() {
-        return ResponseEntity.ok(categoryService.findAll());
+    public ResponseEntity<UserDto> create(@RequestBody UserDto dto) {
+        return ResponseEntity.status(HttpStatus.CREATED).body(userService.create(dto));
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<CategoryDto> findById(@PathVariable Long id) {
-        return ResponseEntity.ok(categoryService.findById(id));
+    public ResponseEntity<UserDto> getOne(@PathVariable Long id) {
+        return ResponseEntity.ok(userService.findById(id));
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<CategoryDto> update(@PathVariable Long id, @RequestBody CategoryDto categoryDto) {
-        return ResponseEntity.ok(categoryService.update(id, categoryDto));
+    public ResponseEntity<UserDto> update(@PathVariable Long id, @RequestBody UserDto dto) {
+        return ResponseEntity.ok(userService.update(id, dto));
     }
 
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> delete(@PathVariable Long id) {
-        categoryService.delete(id);
+        userService.delete(id);
         return ResponseEntity.noContent().build();
     }
 }
