@@ -53,8 +53,8 @@ public class ProductController {
     @PostMapping("/createDemo")
     public ResponseEntity<ProductDto> runDemo(
             @RequestBody ProductDto dto,
-            @RequestParam Boolean useTransaction,
-            @RequestParam Boolean makeError
+            @RequestParam boolean useTransaction,
+            @RequestParam boolean makeError
     ) {
         if (useTransaction) {
             return ResponseEntity.ok().body(productService.saveWithTransaction(dto, makeError));

@@ -89,7 +89,7 @@ public class ProductService {
         productRepository.save(product);
 
         if (throwException) {
-            throw new RuntimeException(
+            throw new IllegalArgumentException(
                     "Ошибка! Нет транзакции, продукт останется в БД."
             );
         }
@@ -113,7 +113,7 @@ public class ProductService {
         productRepository.save(product);
 
         if (throwException) {
-            throw new RuntimeException(
+            throw new IllegalArgumentException(
                     "Ошибка! Благодаря @Transactional произойдет rollback."
             );
         }

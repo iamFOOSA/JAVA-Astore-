@@ -14,7 +14,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
-import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -24,6 +23,7 @@ public class ItemService {
     private final OrderRepository orderRepository;
     private final ProductRepository productRepository;
     private final ItemMapper itemMapper;
+    private final String exceptionText = "Item not found, id: ";
 
     @Transactional
     public ItemDto create(Long orderId, ItemDto dto) {
@@ -53,20 +53,20 @@ public class ItemService {
     public ItemDto findById(Long id) {
         return itemRepository.findById(id)
                 .map(itemMapper::toDto)
-                .orElseThrow(() -> new EntityNotFoundException("Item not found, id: " + id));
+                .orElseThrow(() -> new EntityNotFoundException(exceptionText + id));
     }
 
     @Transactional(readOnly = true)
     public List<ItemDto> findAll() {
         return itemRepository.findAll().stream()
                 .map(itemMapper::toDto)
-                .collect(Collectors.toList());
+                .toList();
     }
 
     @Transactional
     public ItemDto update(Long id, ItemDto dto) {
         Item item = itemRepository.findById(id)
-                .orElseThrow(() -> new EntityNotFoundException("Item not found, id: " + id));
+                .orElseThrow(() -> new EntityNotFoundException(exceptionText + id));
 
         item.setQuantity(dto.getQuantity());
 
@@ -86,7 +86,7 @@ public class ItemService {
     @Transactional
     public void delete(Long id) {
         Item item = itemRepository.findById(id)
-                .orElseThrow(() -> new EntityNotFoundException("Item not found, id: " + id));
+                .orElseThrow(() -> new EntityNotFoundException(exceptionText + id));
 
         Order order = item.getOrder();
 

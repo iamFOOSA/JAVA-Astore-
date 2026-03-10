@@ -10,12 +10,11 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
-import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
 public class CategoryService {
-
+    private final String exceptionText = "Category not found, id: ";
     private final CategoryRepository categoryRepository;
     private final CategoryMapper categoryMapper;
 
@@ -29,20 +28,20 @@ public class CategoryService {
     public CategoryDto findById(Long id) {
         return categoryRepository.findById(id)
                 .map(categoryMapper::toDto)
-                .orElseThrow(() -> new EntityNotFoundException("Category not found, id: " + id));
+                .orElseThrow(() -> new EntityNotFoundException(exceptionText + id));
     }
 
     @Transactional(readOnly = true)
     public List<CategoryDto> findAll() {
         return categoryRepository.findAll().stream()
                 .map(categoryMapper::toDto)
-                .collect(Collectors.toList());
+                .toList();
     }
 
     @Transactional
     public CategoryDto update(Long id, CategoryDto dto) {
         if (!categoryRepository.existsById(id)) {
-            throw new EntityNotFoundException("Category not found, id: " + id);
+            throw new EntityNotFoundException(exceptionText + id);
         }
         Category category = categoryMapper.toEntity(dto);
         category.setId(id);
