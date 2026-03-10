@@ -85,7 +85,7 @@ public class ItemService {
     @Transactional
     public void delete(Long id) {
         Item item = itemRepository.findById(id)
-                .orElseThrow(() -> new EntityNotFoundException(EXCEPTION_TEXT + id));
+                .orElseThrow(() -> new EntityNotFoundException("Item not founded" + id));
 
         Order order = item.getOrder();
 
