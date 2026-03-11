@@ -11,6 +11,10 @@ import java.util.stream.Collectors;
 public class OrderMapper {
 
     public OrderDto toDto(Order order) {
+        if (order == null) {
+            return null;
+        }
+
         OrderDto dto = new OrderDto();
         dto.setId(order.getId());
         dto.setOrderDate(order.getOrderDate());
@@ -25,13 +29,16 @@ public class OrderMapper {
         return dto;
     }
 
-    public ItemDto itemToDto(Item item) {
+    private ItemDto itemToDto(Item item) {
         ItemDto dto = new ItemDto();
         dto.setId(item.getId());
         dto.setQuantity(item.getQuantity());
         dto.setPrice(item.getPrice());
-        dto.setProductId(item.getProduct().getId());
-        dto.setProductName(item.getProduct().getName());
+        dto.setProductName(item.getProductName());
+
+        if (item.getProduct() != null) {
+            dto.setProductId(item.getProduct().getId());
+        }
         return dto;
     }
 }

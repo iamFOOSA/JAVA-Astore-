@@ -14,6 +14,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -35,6 +36,7 @@ public class ItemService {
         Item item = itemMapper.toEntity(dto);
         item.setProduct(product);
         item.setOrder(order);
+        item.setProductName(product.getName());
 
         if (item.getPrice() == null) {
             item.setPrice(product.getPrice());
@@ -52,20 +54,20 @@ public class ItemService {
     public ItemDto findById(Long id) {
         return itemRepository.findById(id)
                 .map(itemMapper::toDto)
-                .orElseThrow(() -> new EntityNotFoundException("Item not found with id" + id));
+                .orElseThrow(() -> new EntityNotFoundException("Item not found with exception, id: " + id));
     }
 
     @Transactional(readOnly = true)
     public List<ItemDto> findAll() {
         return itemRepository.findAll().stream()
                 .map(itemMapper::toDto)
-                .toList();
+                .collect(Collectors.toList());
     }
 
     @Transactional
     public ItemDto update(Long id, ItemDto dto) {
         Item item = itemRepository.findById(id)
-                .orElseThrow(() -> new EntityNotFoundException("Item not found" + id));
+                .orElseThrow(() -> new EntityNotFoundException("Item not found, id: " + id));
 
         item.setQuantity(dto.getQuantity());
 
@@ -85,7 +87,7 @@ public class ItemService {
     @Transactional
     public void delete(Long id) {
         Item item = itemRepository.findById(id)
-                .orElseThrow(() -> new EntityNotFoundException("Item not founded" + id));
+                .orElseThrow(() -> new EntityNotFoundException("Item not found, id: " + id));
 
         Order order = item.getOrder();
 

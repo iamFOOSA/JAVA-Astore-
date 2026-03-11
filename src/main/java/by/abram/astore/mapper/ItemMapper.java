@@ -16,10 +16,10 @@ public class ItemMapper {
         dto.setId(item.getId());
         dto.setQuantity(item.getQuantity());
         dto.setPrice(item.getPrice());
+        dto.setProductName(item.getProductName());
 
         if (item.getProduct() != null) {
             dto.setProductId(item.getProduct().getId());
-            dto.setProductName(item.getProduct().getName());
         }
 
         return dto;
@@ -34,6 +34,7 @@ public class ItemMapper {
         item.setId(dto.getId());
         item.setQuantity(dto.getQuantity());
         item.setPrice(dto.getPrice());
+        item.setProductName(dto.getProductName());
 
         return item;
     }

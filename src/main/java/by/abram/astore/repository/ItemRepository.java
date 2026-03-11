@@ -2,8 +2,8 @@ package by.abram.astore.repository;
 
 import by.abram.astore.entity.Item;
 import org.springframework.data.jpa.repository.JpaRepository;
-import org.springframework.stereotype.Repository;
+import java.util.List;
 
-@Repository
 public interface ItemRepository extends JpaRepository<Item, Long> {
+    List<Item> findByProductId(Long productId);
 }

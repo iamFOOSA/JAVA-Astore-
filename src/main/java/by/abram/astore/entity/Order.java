@@ -13,16 +13,13 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
-import lombok.Getter;
-import lombok.Setter;
-
+import lombok.Data;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
-@Setter
-@Getter
+@Data
 @Entity
 @Table(name = "orders")
 public class Order {
@@ -46,6 +43,16 @@ public class Order {
 
     @OneToMany(mappedBy = "order", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
     private List<Item> items = new ArrayList<>();
+
+    public void addItem(Item item) {
+        items.add(item);
+        item.setOrder(this);
+    }
+
+    public void removeItem(Item item) {
+        items.remove(item);
+        item.setOrder(null);
+    }
 
     public BigDecimal calculateTotal() {
         return items.stream()

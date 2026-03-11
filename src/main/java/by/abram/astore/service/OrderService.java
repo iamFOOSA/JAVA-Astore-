@@ -17,6 +17,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -46,7 +47,8 @@ public class OrderService {
                 item.setProduct(product);
                 item.setQuantity(itemDto.getQuantity());
                 item.setPrice(product.getPrice());
-                order.getItems().add(item);
+                item.setProductName(product.getName());
+                order.addItem(item);
             });
         }
 
@@ -58,14 +60,14 @@ public class OrderService {
     public OrderDto findById(Long id) {
         return orderRepository.findById(id)
                 .map(orderMapper::toDto)
-                .orElseThrow(() -> new EntityNotFoundException("Order not found, id: " + id));
+                .orElseThrow(() -> new EntityNotFoundException("Order not found with id, id: " + id));
     }
 
     @Transactional(readOnly = true)
     public List<OrderDto> findAll() {
         return orderRepository.findAll().stream()
                 .map(orderMapper::toDto)
-                .toList();
+                .collect(Collectors.toList());
     }
 
     @Transactional
