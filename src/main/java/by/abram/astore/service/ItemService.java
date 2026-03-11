@@ -14,7 +14,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
-import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -61,7 +60,7 @@ public class ItemService {
     public List<ItemDto> findAll() {
         return itemRepository.findAll().stream()
                 .map(itemMapper::toDto)
-                .collect(Collectors.toList());
+                .toList();
     }
 
     @Transactional
