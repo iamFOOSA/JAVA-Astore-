@@ -2,7 +2,7 @@ package by.abram.astore.controller;
 
 import by.abram.astore.dto.ProductDto;
 import by.abram.astore.service.ProductService;
-import by.abram.astore.Cache.ProductCacheService;
+import by.abram.astore.cache.ProductCacheService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.http.HttpStatus;

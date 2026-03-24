@@ -1,6 +1,6 @@
 package by.abram.astore.service;
 
-import by.abram.astore.Cache.ProductCacheService;
+import by.abram.astore.cache.ProductCacheService;
 import by.abram.astore.dto.ProductDto;
 import by.abram.astore.entity.Category;
 import by.abram.astore.entity.Product;

@@ -1,4 +1,4 @@
-package by.abram.astore.Cache;
+package by.abram.astore.cache;
 
 import java.util.Objects;
 
