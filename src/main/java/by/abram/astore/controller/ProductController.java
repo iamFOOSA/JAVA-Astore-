@@ -2,7 +2,9 @@ package by.abram.astore.controller;
 
 import by.abram.astore.dto.ProductDto;
 import by.abram.astore.service.ProductService;
+import by.abram.astore.Cache.ProductCacheService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -15,7 +17,6 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
-import java.util.List;
 
 @RestController
 @RequestMapping("/api/products")
@@ -23,6 +24,7 @@ import java.util.List;
 public class ProductController {
 
     private final ProductService productService;
+    private final ProductCacheService productCacheService;
 
     @PostMapping
     public ResponseEntity<ProductDto> create(@RequestBody ProductDto productDto) {
@@ -35,8 +37,10 @@ public class ProductController {
     }
 
     @GetMapping
-    public ResponseEntity<List<ProductDto>> findAll() {
-        return ResponseEntity.ok(productService.findAll());
+    public ResponseEntity<Page<ProductDto>> findAll(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size) {
+        return ResponseEntity.ok(productService.findAll(page, size));
     }
 
     @PutMapping("/{id}")
@@ -61,5 +65,31 @@ public class ProductController {
         } else {
             return ResponseEntity.ok().body(productService.saveWithoutTransaction(dto, makeError));
         }
+    }
+    @GetMapping("/search")
+    public ResponseEntity<Page<ProductDto>> searchProducts(
+            @RequestParam Long userId,
+            @RequestParam String categoryName,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "5") int size) {
+        return ResponseEntity.ok(productCacheService.getProducts(userId, categoryName, page, size));
+    }
+
+    @GetMapping("/search/jpql")
+    public ResponseEntity<Page<ProductDto>> searchJpql(
+            @RequestParam Long userId,
+            @RequestParam String categoryName,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "5") int size) {
+        return ResponseEntity.ok(productService.searchByJpql(userId, categoryName, page, size));
+    }
+
+    @GetMapping("/search/native")
+    public ResponseEntity<Page<ProductDto>> searchNative(
+            @RequestParam Long userId,
+            @RequestParam String categoryName,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "5") int size) {
+        return ResponseEntity.ok(productService.searchByNative(userId, categoryName, page, size));
     }
 }

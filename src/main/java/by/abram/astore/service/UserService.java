@@ -1,5 +1,6 @@
 package by.abram.astore.service;
 
+import by.abram.astore.Cache.ProductCacheService;
 import by.abram.astore.dto.UserDto;
 import by.abram.astore.entity.User;
 import by.abram.astore.mapper.UserMapper;
@@ -8,8 +9,9 @@ import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 
-import java.util.List;
 
 @Service
 @RequiredArgsConstructor
@@ -17,11 +19,16 @@ public class UserService {
 
     private final UserRepository userRepository;
     private final UserMapper userMapper;
+    private final ProductCacheService productCacheService;
 
     @Transactional
     public UserDto create(UserDto dto) {
         User user = userMapper.toEntity(dto);
-        return userMapper.toDto(userRepository.save(user));
+        User savedUser = userRepository.save(user);
+
+        productCacheService.invalidateCache();
+
+        return userMapper.toDto(savedUser);
     }
 
     @Transactional
@@ -33,7 +40,11 @@ public class UserService {
         existingUser.setFirstName(dto.getFirstName());
         existingUser.setLastName(dto.getLastName());
 
-        return userMapper.toDto(userRepository.save(existingUser));
+        User updatedUser = userRepository.save(existingUser);
+
+        productCacheService.invalidateCache();
+
+        return userMapper.toDto(updatedUser);
     }
 
     @Transactional(readOnly = true)
@@ -44,10 +55,9 @@ public class UserService {
     }
 
     @Transactional(readOnly = true)
-    public List<UserDto> findAll() {
-        return userRepository.findAll().stream()
-                .map(userMapper::toDto)
-                .toList();
+    public Page<UserDto> findAll(int page, int size) {
+        return userRepository.findAll(PageRequest.of(page, size))
+                .map(userMapper::toDto);
     }
 
     @Transactional
@@ -56,5 +66,7 @@ public class UserService {
             throw new EntityNotFoundException("User not found with id: " + id);
         }
         userRepository.deleteById(id);
+
+        productCacheService.invalidateCache();
     }
 }

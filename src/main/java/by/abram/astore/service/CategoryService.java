@@ -1,5 +1,6 @@
 package by.abram.astore.service;
 
+import by.abram.astore.Cache.ProductCacheService;
 import by.abram.astore.dto.CategoryDto;
 import by.abram.astore.entity.Category;
 import by.abram.astore.mapper.CategoryMapper;
@@ -8,19 +9,24 @@ import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 
-import java.util.List;
 
 @Service
 @RequiredArgsConstructor
 public class CategoryService {
     private final CategoryRepository categoryRepository;
     private final CategoryMapper categoryMapper;
+    private final ProductCacheService productCacheService;
 
     @Transactional
     public CategoryDto create(CategoryDto dto) {
         Category category = categoryMapper.toEntity(dto);
-        return categoryMapper.toDto(categoryRepository.save(category));
+        Category savedCategory = categoryRepository.save(category);
+        productCacheService.invalidateCache();
+
+        return categoryMapper.toDto(savedCategory);
     }
 
     @Transactional(readOnly = true)
@@ -31,10 +37,9 @@ public class CategoryService {
     }
 
     @Transactional(readOnly = true)
-    public List<CategoryDto> findAll() {
-        return categoryRepository.findAll().stream()
-                .map(categoryMapper::toDto)
-                .toList();
+    public Page<CategoryDto> findAll(int page, int size) {
+        return categoryRepository.findAll(PageRequest.of(page, size))
+                .map(categoryMapper::toDto);
     }
 
     @Transactional
@@ -44,11 +49,15 @@ public class CategoryService {
         }
         Category category = categoryMapper.toEntity(dto);
         category.setId(id);
-        return categoryMapper.toDto(categoryRepository.save(category));
+        Category updatedCategory = categoryRepository.save(category);
+        productCacheService.invalidateCache();
+
+        return categoryMapper.toDto(updatedCategory);
     }
 
     @Transactional
     public void delete(Long id) {
         categoryRepository.deleteById(id);
+        productCacheService.invalidateCache();
     }
 }

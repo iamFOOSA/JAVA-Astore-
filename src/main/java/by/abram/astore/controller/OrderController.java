@@ -4,6 +4,7 @@ import by.abram.astore.dto.OrderDto;
 import by.abram.astore.entity.Status;
 import by.abram.astore.service.OrderService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -16,7 +17,6 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
-import java.util.List;
 
 @RestController
 @RequestMapping("/api/orders")
@@ -32,8 +32,10 @@ public class OrderController {
     }
 
     @GetMapping
-    public ResponseEntity<List<OrderDto>> findAll() {
-        return ResponseEntity.ok(orderService.findAll());
+    public ResponseEntity<Page<OrderDto>> findAll(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size) {
+        return ResponseEntity.ok(orderService.findAll(page, size));
     }
 
     @GetMapping("/{id}")

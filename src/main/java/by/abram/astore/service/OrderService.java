@@ -1,5 +1,6 @@
 package by.abram.astore.service;
 
+import by.abram.astore.Cache.ProductCacheService;
 import by.abram.astore.dto.OrderDto;
 import by.abram.astore.entity.Item;
 import by.abram.astore.entity.Order;
@@ -14,9 +15,11 @@ import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+
 
 import java.time.LocalDateTime;
-import java.util.List;
 
 @Service
 @RequiredArgsConstructor
@@ -26,6 +29,7 @@ public class OrderService {
     private final UserRepository userRepository;
     private final ProductRepository productRepository;
     private final OrderMapper orderMapper;
+    private final ProductCacheService productCacheService;
 
     @Transactional
     public OrderDto create(OrderDto dto) {
@@ -52,7 +56,11 @@ public class OrderService {
         }
 
         order.setTotalAmount(order.calculateTotal());
-        return orderMapper.toDto(orderRepository.save(order));
+        Order savedOrder = orderRepository.save(order);
+
+        productCacheService.invalidateCache();
+
+        return orderMapper.toDto(savedOrder);
     }
 
     @Transactional(readOnly = true)
@@ -63,10 +71,9 @@ public class OrderService {
     }
 
     @Transactional(readOnly = true)
-    public List<OrderDto> findAll() {
-        return orderRepository.findAll().stream()
-                .map(orderMapper::toDto)
-                .toList();
+    public Page<OrderDto> findAll(int page, int size) {
+        return orderRepository.findAll(PageRequest.of(page, size))
+                .map(orderMapper::toDto);
     }
 
     @Transactional
@@ -74,11 +81,16 @@ public class OrderService {
         Order order = orderRepository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("Order not found"));
         order.setStatus(newStatus);
-        return orderMapper.toDto(orderRepository.save(order));
+        Order updatedOrder = orderRepository.save(order);
+
+        productCacheService.invalidateCache();
+
+        return orderMapper.toDto(updatedOrder);
     }
 
     @Transactional
     public void delete(Long id) {
         orderRepository.deleteById(id);
+        productCacheService.invalidateCache();
     }
 }
