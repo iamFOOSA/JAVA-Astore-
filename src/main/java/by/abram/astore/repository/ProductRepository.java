@@ -19,7 +19,7 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
     @EntityGraph(attributePaths = {"categories"})
     List<Product> findAll();
 
-    @Query("SELECT p FROM Product p JOIN p.categories c " +
+    @Query("SELECT p FROM Product p JOIN FETCH p.categories c " +
             "WHERE c.name = :categoryName " +
             "AND EXISTS (SELECT i FROM Item i WHERE i.product.id = p.id AND i.order.user.id = :userId)")
     Page<Product> findProductsByUserAndCategoryJPQL(
