@@ -1,5 +1,6 @@
 package by.abram.astore.repository;
 
+import by.abram.astore.dto.ProductCategoryDTO;
 import by.abram.astore.entity.Product;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -15,11 +16,11 @@ import java.util.List;
 public interface ProductRepository extends JpaRepository<Product, Long> {
 
     @Override
-
-    @EntityGraph(attributePaths = {"categories"})
+    @EntityGraph(attributePaths = { "categories" })
     List<Product> findAll();
 
-    @Query("SELECT p FROM Product p JOIN FETCH p.categories c " +
+    @Query("SELECT DISTINCT p FROM Product p " +
+            "JOIN FETCH p.categories c " +
             "WHERE c.name = :categoryName " +
             "AND EXISTS (SELECT i FROM Item i WHERE i.product.id = p.id AND i.order.user.id = :userId)")
     Page<Product> findProductsByUserAndCategoryJPQL(
@@ -27,22 +28,29 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
             @Param("categoryName") String categoryName,
             Pageable pageable);
 
-    @Query(value = "SELECT p.* FROM products p " +
+    @Query(value = "SELECT " +
+            "  p.id as id, " +
+            "  p.name as name, " +
+            "  p.description as description, " +
+            "  p.price as price, " +
+            "  p.quantity as quantity, " +
+            "  c.name as categoryName " +
+            "FROM products p " +
             "JOIN product_category pc ON p.id = pc.product_id " +
             "JOIN categories c ON c.id = pc.category_id " +
-            "WHERE c.name = :categoryName AND p.id IN (" +
+            "WHERE c.name = :categoryName AND p.id IN ( " +
             "  SELECT i.product_id FROM items i " +
             "  JOIN orders o ON o.id = i.order_id " +
-            "  WHERE o.user_id = :userId" +
+            "  WHERE o.user_id = :userId " +
             ")",
-            countQuery = "SELECT count(*) FROM products p " +
+            countQuery = "SELECT count(DISTINCT p.id) FROM products p " +
                     "JOIN product_category pc ON p.id = pc.product_id " +
                     "JOIN categories c ON c.id = pc.category_id " +
-                    "WHERE c.name = :categoryName AND EXISTS (" +
+                    "WHERE c.name = :categoryName AND EXISTS ( " +
                     "  SELECT 1 FROM items i JOIN orders o ON o.id = i.order_id " +
                     "  WHERE i.product_id = p.id AND o.user_id = :userId)",
             nativeQuery = true)
-    Page<Product> findProductsByUserAndCategoryNative(
+    Page<ProductCategoryDTO> findProductsByUserAndCategoryNative(
             @Param("userId") Long userId,
             @Param("categoryName") String categoryName,
             Pageable pageable);

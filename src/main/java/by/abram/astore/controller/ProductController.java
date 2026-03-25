@@ -1,6 +1,7 @@
 package by.abram.astore.controller;
 
 import by.abram.astore.dto.ProductDto;
+import by.abram.astore.dto.ProductCategoryDTO;
 import by.abram.astore.service.ProductService;
 import by.abram.astore.cache.ProductCacheService;
 import lombok.RequiredArgsConstructor;
@@ -66,6 +67,7 @@ public class ProductController {
             return ResponseEntity.ok().body(productService.saveWithoutTransaction(dto, makeError));
         }
     }
+
     @GetMapping("/search")
     public ResponseEntity<Page<ProductDto>> searchProducts(
             @RequestParam Long userId,
@@ -85,11 +87,11 @@ public class ProductController {
     }
 
     @GetMapping("/search/native")
-    public ResponseEntity<Page<ProductDto>> searchNative(
-            @RequestParam Long userId,
-            @RequestParam String categoryName,
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "5") int size) {
+    public ResponseEntity<Page<ProductCategoryDTO>> searchNative(
+                                                                  @RequestParam Long userId,
+                                                                  @RequestParam String categoryName,
+                                                                  @RequestParam(defaultValue = "0") int page,
+                                                                  @RequestParam(defaultValue = "5") int size) {
         return ResponseEntity.ok(productService.searchByNative(userId, categoryName, page, size));
     }
 }

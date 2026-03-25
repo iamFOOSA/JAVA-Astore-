@@ -2,6 +2,7 @@ package by.abram.astore.service;
 
 import by.abram.astore.cache.ProductCacheService;
 import by.abram.astore.dto.ProductDto;
+import by.abram.astore.dto.ProductCategoryDTO;
 import by.abram.astore.entity.Category;
 import by.abram.astore.entity.Product;
 import by.abram.astore.entity.Item;
@@ -27,7 +28,6 @@ public class ProductService {
     private final CategoryRepository categoryRepository;
     private final ItemRepository itemRepository;
     private final ProductMapper productMapper;
-
     private final ProductCacheService productCacheService;
 
     @Transactional
@@ -48,7 +48,7 @@ public class ProductService {
     public ProductDto findById(Long id) {
         return productRepository.findById(id)
                 .map(productMapper::toDto)
-                .orElseThrow(() -> new EntityNotFoundException("Product not found id=" + id));
+                .orElseThrow(() -> new EntityNotFoundException("Product not found id= " + id));
     }
 
     @Transactional(readOnly = true)
@@ -65,16 +65,15 @@ public class ProductService {
     }
 
     @Transactional(readOnly = true)
-    public Page<ProductDto> searchByNative(Long userId, String categoryName, int page, int size) {
+    public Page<ProductCategoryDTO> searchByNative(Long userId, String categoryName, int page, int size) {
         return productRepository.findProductsByUserAndCategoryNative(
-                        userId, categoryName, PageRequest.of(page, size))
-                .map(productMapper::toDto);
+                userId, categoryName, PageRequest.of(page, size));
     }
 
     @Transactional
     public ProductDto update(Long id, ProductDto dto) {
         Product product = productRepository.findById(id)
-                .orElseThrow(() -> new EntityNotFoundException("Product not found id=" + id));
+                .orElseThrow(() -> new EntityNotFoundException("Product not found id= " + id));
 
         product.setName(dto.getName());
         product.setDescription(dto.getDescription());
@@ -109,7 +108,7 @@ public class ProductService {
         productRepository.save(product);
 
         if (throwException) {
-            throw new IllegalArgumentException("Ошибка! Нет транзакции, продукт останется в БД.");
+            throw new IllegalArgumentException("Ошибка! Нет транзакции, продукт останется в БД. ");
         }
 
         List<Category> categories = findExistingCategories(dto.getCategories());
@@ -128,9 +127,8 @@ public class ProductService {
         productRepository.save(product);
 
         if (throwException) {
-            throw new IllegalArgumentException("Ошибка! Благодаря @Transactional произойдет rollback.");
+            throw new IllegalArgumentException("Ошибка! Благодаря @Transactional произойдет rollback. ");
         }
-
 
         productCacheService.invalidateCache();
 
