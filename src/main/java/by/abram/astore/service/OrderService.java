@@ -7,6 +7,8 @@ import by.abram.astore.entity.Order;
 import by.abram.astore.entity.Product;
 import by.abram.astore.entity.User;
 import by.abram.astore.entity.Status;
+import by.abram.astore.exception.BusinessLogicException;
+import by.abram.astore.exception.ResourceNotFoundException;
 import by.abram.astore.mapper.OrderMapper;
 import by.abram.astore.repository.OrderRepository;
 import by.abram.astore.repository.ProductRepository;
@@ -34,7 +36,7 @@ public class OrderService {
     @Transactional
     public OrderDto create(OrderDto dto) {
         User user = userRepository.findById(dto.getUserId())
-                .orElseThrow(() -> new EntityNotFoundException("User not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("User", dto.getUserId())); // Используем твой Exception
 
         Order order = new Order();
         order.setUser(user);
@@ -42,9 +44,18 @@ public class OrderService {
         order.setStatus(Status.NEW);
 
         if (dto.getItems() != null) {
-            dto.getItems().forEach(itemDto -> {
+            for (var itemDto : dto.getItems()) {
                 Product product = productRepository.findById(itemDto.getProductId())
-                        .orElseThrow(() -> new EntityNotFoundException("Product not found"));
+                        .orElseThrow(() -> new ResourceNotFoundException("Product", itemDto.getProductId()));
+                if (product.getQuantity() < itemDto.getQuantity()) {
+                    throw new BusinessLogicException(
+                            String.format("Недостаточно товара '%s' на складе. В наличии: %d, запрошено: %d",
+                                    product.getName(), product.getQuantity(), itemDto.getQuantity())
+                    );
+                }
+
+                product.setQuantity(product.getQuantity() - itemDto.getQuantity());
+                productRepository.save(product);
 
                 Item item = new Item();
                 item.setProduct(product);
@@ -52,12 +63,11 @@ public class OrderService {
                 item.setPrice(product.getPrice());
                 item.setProductName(product.getName());
                 order.addItem(item);
-            });
+            }
         }
 
         order.setTotalAmount(order.calculateTotal());
         Order savedOrder = orderRepository.save(order);
-
         productCacheService.invalidateCache();
 
         return orderMapper.toDto(savedOrder);

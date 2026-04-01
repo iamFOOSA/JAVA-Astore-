@@ -3,6 +3,7 @@ package by.abram.astore.service;
 import by.abram.astore.cache.ProductCacheService;
 import by.abram.astore.dto.UserDto;
 import by.abram.astore.entity.User;
+import by.abram.astore.exception.ResourceNotFoundException;
 import by.abram.astore.mapper.UserMapper;
 import by.abram.astore.repository.UserRepository;
 import jakarta.persistence.EntityNotFoundException;
@@ -34,7 +35,7 @@ public class UserService {
     @Transactional
     public UserDto update(Long id, UserDto dto) {
         User existingUser = userRepository.findById(id)
-                .orElseThrow(() -> new EntityNotFoundException("User not found with id: " + id));
+                .orElseThrow(() -> new EntityNotFoundException("пользователь не найден с id: " + id));
 
         existingUser.setEmail(dto.getEmail());
         existingUser.setFirstName(dto.getFirstName());
@@ -51,7 +52,7 @@ public class UserService {
     public UserDto findById(Long id) {
         return userRepository.findById(id)
                 .map(userMapper::toDto)
-                .orElseThrow(() -> new EntityNotFoundException("User not found with id: " + id));
+                .orElseThrow(() -> new ResourceNotFoundException("User", id));
     }
 
     @Transactional(readOnly = true)
@@ -63,7 +64,7 @@ public class UserService {
     @Transactional
     public void delete(Long id) {
         if (!userRepository.existsById(id)) {
-            throw new EntityNotFoundException("User not found with id: " + id);
+            throw new EntityNotFoundException("пользователь не найден с id: " + id);
         }
         userRepository.deleteById(id);
 
