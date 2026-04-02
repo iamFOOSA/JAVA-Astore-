@@ -11,10 +11,17 @@
 
     <appender name="FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
         <file>logs/astore.log</file>
-        <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
-            <fileNamePattern>logs/astore-%d{yyyy-MM-dd}.log</fileNamePattern>
+
+        <rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
+            <fileNamePattern>logs/archive/astore-%d{yyyy-MM-dd}.%i.log.gz</fileNamePattern>
+
+            <maxFileSize>10KB</maxFileSize>
+
             <maxHistory>30</maxHistory>
+
+            <totalSizeCap>1GB</totalSizeCap>
         </rollingPolicy>
+
         <encoder>
             <pattern>${FILE_LOG_PATTERN}</pattern>
         </encoder>
