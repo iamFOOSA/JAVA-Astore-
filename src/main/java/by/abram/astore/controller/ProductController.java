@@ -21,6 +21,8 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.util.List;
+
 @RestController
 @RequestMapping("/api/products")
 @RequiredArgsConstructor
@@ -75,6 +77,22 @@ public class ProductController {
         } else {
             return ResponseEntity.ok().body(productService.saveWithoutTransaction(dto, makeError));
         }
+    }
+
+    @PostMapping("/bulk-import")
+    @Operation(summary = "Массовый импорт продуктов", description = "Загружаем список товаров.")
+    public ResponseEntity<List<ProductDto>> bulkImport(
+            @RequestBody @Valid List<ProductDto> productDtos,
+            @RequestParam(defaultValue = "true") boolean useTransaction,
+            @RequestParam(defaultValue = "false") boolean simulateError) {
+
+        List<ProductDto> result;
+        if (useTransaction) {
+            result = productService.bulkImportWithTransaction(productDtos, simulateError);
+        } else {
+            result = productService.bulkImportWithoutTransaction(productDtos, simulateError);
+        }
+        return ResponseEntity.status(HttpStatus.CREATED).body(result);
     }
 
     @GetMapping("/search")

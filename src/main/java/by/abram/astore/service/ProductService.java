@@ -17,8 +17,10 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor
@@ -133,6 +135,49 @@ public class ProductService {
         productCacheService.invalidateCache();
 
         return productMapper.toDto(product);
+    }
+
+    @Transactional
+    public List<ProductDto> bulkImportWithTransaction(List<ProductDto> dtos, boolean simulateError) {
+        return processBulkImport(dtos, simulateError);
+    }
+
+    public List<ProductDto> bulkImportWithoutTransaction(List<ProductDto> dtos, boolean simulateError) {
+        return processBulkImport(dtos, simulateError);
+    }
+
+    private List<ProductDto> processBulkImport(List<ProductDto> dtos, boolean simulateError) {
+        List<ProductDto> savedDtos = new ArrayList<>();
+        int count = 0;
+
+        List<Product> productsToSave = dtos.stream()
+                .map(dto -> {
+                    Product product = productMapper.toEntity(dto);
+
+                    String validDescription = Optional.ofNullable(dto.getDescription())
+                            .filter(desc -> !desc.trim().isEmpty())
+                            .orElse("Описание отсутствует (добавлено автоматически)");
+                    product.setDescription(validDescription);
+
+                    List<Category> categories = findExistingCategories(dto.getCategories());
+                    product.setCategories(categories);
+                    return product;
+                })
+                .toList();
+
+        for (Product product : productsToSave) {
+            count++;
+
+            if (simulateError && count == dtos.size()) {
+                throw new RuntimeException("Симуляция сбоя на товаре: " + product.getName() + ".");
+            }
+
+            Product saved = productRepository.save(product);
+            savedDtos.add(productMapper.toDto(saved));
+        }
+
+        productCacheService.invalidateCache();
+        return savedDtos;
     }
 
     private List<Category> findExistingCategories(Collection<String> categoryNames) {
