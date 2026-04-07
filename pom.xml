@@ -42,7 +42,7 @@
             **/mapper/**,
             **/controller/**,
             **/cache/**,
-            **/aop/**,
+            **/aspect/**,
             **/*Application.java
         </sonar.coverage.exclusions>
         <sonar.exclusions>
