@@ -12,6 +12,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 
@@ -37,38 +38,11 @@ class CategoryServiceTest {
         when(categoryRepository.save(entity)).thenReturn(entity);
         when(categoryMapper.toDto(entity)).thenReturn(dto);
 
-        categoryService.create(dto);
+        CategoryDto result = categoryService.create(dto);
 
+        assertNotNull(result);
+        verify(categoryRepository).save(entity);
         verify(productCacheService).invalidateCache();
-    }
-
-    @Test
-    void update_ShouldThrow_WhenNotFound() {
-        Long categoryId = 1L;
-        CategoryDto categoryDto = new CategoryDto();
-        when(categoryRepository.existsById(categoryId)).thenReturn(false);
-        assertThrows(EntityNotFoundException.class, () -> categoryService.update(categoryId, categoryDto));
-    }
-
-    @Test
-    void update_Success() {
-        CategoryDto dto = new CategoryDto();
-        Category entity = mock(Category.class);
-
-        when(categoryRepository.existsById(1L)).thenReturn(true);
-        when(categoryMapper.toEntity(dto)).thenReturn(entity);
-        when(categoryRepository.save(entity)).thenReturn(entity);
-        when(categoryMapper.toDto(entity)).thenReturn(dto);
-        categoryService.update(1L, dto);
-        verify(entity).setId(1L);
-        verify(productCacheService).invalidateCache();
-    }
-
-    @Test
-    void findAll_Success() {
-        when(categoryRepository.findAll(any(PageRequest.class))).thenReturn(new PageImpl<>(List.of(new Category())));
-        categoryService.findAll(0, 10);
-        verify(categoryMapper).toDto(any());
     }
 
     @Test
@@ -82,18 +56,64 @@ class CategoryServiceTest {
         CategoryDto result = categoryService.findById(id);
 
         assertNotNull(result);
-        verify(categoryRepository).findById(id);
+        assertEquals(dto, result);
     }
 
     @Test
     void findById_ShouldThrow_WhenNotFound() {
-        when(categoryRepository.findById(1L)).thenReturn(Optional.empty());
-        assertThrows(EntityNotFoundException.class, () -> categoryService.findById(1L));
+        Long id = 1L;
+        when(categoryRepository.findById(id)).thenReturn(Optional.empty());
+
+        assertThrows(EntityNotFoundException.class, () -> categoryService.findById(id));
+    }
+
+    @Test
+    void findAll_Success() {
+        PageRequest pageable = PageRequest.of(0, 10);
+        Category category = new Category();
+        CategoryDto dto = new CategoryDto();
+        Page<Category> page = new PageImpl<>(List.of(category));
+
+        when(categoryRepository.findAll(pageable)).thenReturn(page);
+        when(categoryMapper.toDto(category)).thenReturn(dto);
+
+        Page<CategoryDto> result = categoryService.findAll(0, 10);
+
+        assertNotNull(result);
+        assertEquals(1, result.getContent().size());
+        verify(categoryMapper).toDto(any());
+    }
+
+    @Test
+    void update_Success() {
+        Long id = 1L;
+        CategoryDto dto = new CategoryDto();
+        Category entity = new Category();
+        when(categoryRepository.existsById(id)).thenReturn(true);
+        when(categoryMapper.toEntity(dto)).thenReturn(entity);
+        when(categoryRepository.save(entity)).thenReturn(entity);
+        when(categoryMapper.toDto(entity)).thenReturn(dto);
+
+        CategoryDto result = categoryService.update(id, dto);
+
+        assertNotNull(result);
+        assertEquals(id, entity.getId());
+        verify(productCacheService).invalidateCache();
+    }
+
+    @Test
+    void update_ShouldThrow_WhenNotFound() {
+        Long id = 1L;
+        CategoryDto dto = new CategoryDto();
+        when(categoryRepository.existsById(id)).thenReturn(false);
+
+        assertThrows(EntityNotFoundException.class, () -> categoryService.update(id, dto));
     }
 
     @Test
     void delete_Success() {
         Long id = 1L;
+
         categoryService.delete(id);
 
         verify(categoryRepository).deleteById(id);

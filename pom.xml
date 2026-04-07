@@ -40,6 +40,7 @@
             **/exception/**,
             **/repository/**,
             **/mapper/**,
+            **/entity/**,
             **/controller/**,
             **/cache/**,
             **/aspect/**,

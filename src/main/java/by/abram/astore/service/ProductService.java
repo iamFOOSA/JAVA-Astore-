@@ -35,9 +35,12 @@ public class ProductService {
     @Transactional
     public ProductDto create(ProductDto dto) {
         Product product = productMapper.toEntity(dto);
-        product.setCategories(findExistingCategories(dto.getCategories()));
+
+        List<Category> categories = findExistingCategories(dto.getCategories());
+        product.setCategories(categories);
 
         Product savedProduct = productRepository.save(product);
+
         productCacheService.invalidateCache();
 
         return productMapper.toDto(savedProduct);
@@ -78,9 +81,12 @@ public class ProductService {
         product.setDescription(dto.getDescription());
         product.setPrice(dto.getPrice());
         product.setQuantity(dto.getQuantity());
-        product.setCategories(findExistingCategories(dto.getCategories()));
+
+        List<Category> categories = findExistingCategories(dto.getCategories());
+        product.setCategories(categories);
 
         Product updatedProduct = productRepository.save(product);
+
         productCacheService.invalidateCache();
 
         return productMapper.toDto(updatedProduct);
@@ -89,39 +95,47 @@ public class ProductService {
     @Transactional
     public void delete(Long id) {
         List<Item> items = itemRepository.findByProductId(id);
-        items.forEach(item -> item.setProduct(null));
+        for (Item item : items) {
+            item.setProduct(null);
+        }
         itemRepository.saveAll(items);
 
         productRepository.deleteById(id);
+
         productCacheService.invalidateCache();
     }
 
+    @Transactional
     public ProductDto saveWithoutTransaction(ProductDto dto, boolean throwException) {
         Product product = productMapper.toEntity(dto);
-        product.setCategories(findExistingCategories(dto.getCategories()));
+
+        List<Category> categories = findExistingCategories(dto.getCategories());
+        product.setCategories(categories);
 
         Product savedProduct = productRepository.save(product);
 
         if (throwException) {
-            throw new IllegalStateException("Ошибка! Нет транзакции, продукт останется в БД.");
+            throw new IllegalArgumentException("Ошибка! Нет транзакции, продукт останется в БД. ");
         }
 
         productCacheService.invalidateCache();
+
         return productMapper.toDto(savedProduct);
     }
 
     @Transactional
     public ProductDto saveWithTransaction(ProductDto dto, boolean throwException) {
         Product product = productMapper.toEntity(dto);
-        product.setCategories(findExistingCategories(dto.getCategories()));
-
+        List<Category> categories = findExistingCategories(dto.getCategories());
+        product.setCategories(categories);
         productRepository.save(product);
 
         if (throwException) {
-            throw new IllegalStateException("Ошибка! Благодаря @Transactional произойдет rollback.");
+            throw new IllegalArgumentException("Ошибка! Благодаря @Transactional произойдет rollback. ");
         }
 
         productCacheService.invalidateCache();
+
         return productMapper.toDto(product);
     }
 
@@ -130,6 +144,7 @@ public class ProductService {
         return processBulkImport(dtos, simulateError);
     }
 
+    @Transactional
     public List<ProductDto> bulkImportWithoutTransaction(List<ProductDto> dtos, boolean simulateError) {
         return processBulkImport(dtos, simulateError);
     }
@@ -140,6 +155,7 @@ public class ProductService {
 
         for (ProductDto dto : dtos) {
             count++;
+
             Product product = productMapper.toEntity(dto);
 
             String validDescription = Optional.ofNullable(dto.getDescription())
@@ -147,10 +163,11 @@ public class ProductService {
                     .orElse("Описание отсутствует (добавлено автоматически)");
             product.setDescription(validDescription);
 
-            product.setCategories(findExistingCategories(dto.getCategories()));
+            List<Category> categories = findExistingCategories(dto.getCategories());
+            product.setCategories(categories);
 
             if (simulateError && count == dtos.size()) {
-                throw new IllegalStateException("Симуляция сбоя на товаре: " + product.getName() + ".");
+                throw new RuntimeException("Симуляция сбоя на товаре: " + product.getName() + ".");
             }
 
             Product saved = productRepository.save(product);
@@ -165,6 +182,6 @@ public class ProductService {
         if (categoryNames == null || categoryNames.isEmpty()) {
             return List.of();
         }
-        return categoryRepository.findByNameIn(new ArrayList<>(categoryNames));
+        return categoryRepository.findByNameIn(categoryNames.stream().toList());
     }
 }
