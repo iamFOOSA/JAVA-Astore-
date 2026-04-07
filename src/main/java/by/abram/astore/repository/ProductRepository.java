@@ -11,6 +11,7 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
+import java.util.Optional;
 
 @Repository
 public interface ProductRepository extends JpaRepository<Product, Long> {
@@ -18,6 +19,10 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
     @Override
     @EntityGraph(attributePaths = { "categories" })
     List<Product> findAll();
+
+    @Override
+    @EntityGraph(attributePaths = { "categories" })
+    Optional<Product> findById(Long id);
 
     @Query("SELECT DISTINCT p FROM Product p " +
             "JOIN FETCH p.categories c " +

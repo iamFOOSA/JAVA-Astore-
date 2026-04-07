@@ -82,7 +82,7 @@ public class ProductController {
     @PostMapping("/bulk-import")
     @Operation(summary = "Массовый импорт продуктов", description = "Загружаем список товаров.")
     public ResponseEntity<List<ProductDto>> bulkImport(
-            @RequestBody @Valid List<ProductDto> productDtos,
+            @RequestBody List<ProductDto> productDtos,
             @RequestParam(defaultValue = "true") boolean useTransaction,
             @RequestParam(defaultValue = "false") boolean simulateError) {
 

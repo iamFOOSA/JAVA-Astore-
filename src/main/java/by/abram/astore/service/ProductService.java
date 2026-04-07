@@ -12,6 +12,7 @@ import by.abram.astore.repository.ProductRepository;
 import by.abram.astore.repository.ItemRepository;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.data.domain.Page;
@@ -22,6 +23,7 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class ProductService {
@@ -95,9 +97,9 @@ public class ProductService {
     @Transactional
     public void delete(Long id) {
         List<Item> items = itemRepository.findByProductId(id);
-        for (Item item : items) {
-            item.setProduct(null);
-        }
+
+        items.stream().forEach(item -> item.setProduct(null));
+
         itemRepository.saveAll(items);
 
         productRepository.deleteById(id);
@@ -112,7 +114,7 @@ public class ProductService {
         List<Category> categories = findExistingCategories(dto.getCategories());
         product.setCategories(categories);
 
-        Product savedProduct = productRepository.save(product);
+        Product savedProduct = productRepository.saveAndFlush(product);
 
         if (throwException) {
             throw new IllegalArgumentException("Ошибка! Нет транзакции, продукт останется в БД. ");
@@ -144,7 +146,6 @@ public class ProductService {
         return processBulkImport(dtos, simulateError);
     }
 
-    @Transactional
     public List<ProductDto> bulkImportWithoutTransaction(List<ProductDto> dtos, boolean simulateError) {
         return processBulkImport(dtos, simulateError);
     }
@@ -152,7 +153,7 @@ public class ProductService {
     private List<ProductDto> processBulkImport(List<ProductDto> dtos, boolean simulateError) {
         List<ProductDto> savedDtos = new ArrayList<>();
         int count = 0;
-
+        log.info("woshli");
         for (ProductDto dto : dtos) {
             count++;
 
@@ -166,11 +167,12 @@ public class ProductService {
             List<Category> categories = findExistingCategories(dto.getCategories());
             product.setCategories(categories);
 
-            if (simulateError && count == dtos.size()) {
+            Product saved = productRepository.saveAndFlush(product);
+            log.info("SAVED");
+            if (simulateError) {
                 throw new RuntimeException("Симуляция сбоя на товаре: " + product.getName() + ".");
             }
 
-            Product saved = productRepository.save(product);
             savedDtos.add(productMapper.toDto(saved));
         }
 
@@ -182,6 +184,12 @@ public class ProductService {
         if (categoryNames == null || categoryNames.isEmpty()) {
             return List.of();
         }
-        return categoryRepository.findByNameIn(categoryNames.stream().toList());
+
+        List<String> validNames = categoryNames.stream()
+                .filter(name -> name != null && !name.trim().isEmpty())
+                .distinct()
+                .toList();
+
+        return categoryRepository.findByNameIn(validNames);
     }
 }
