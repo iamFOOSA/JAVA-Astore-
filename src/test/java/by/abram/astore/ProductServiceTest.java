@@ -216,8 +216,7 @@ class ProductServiceTest {
         ProductDto dto = new ProductDto();
         Product product = new Product();
         when(productMapper.toEntity(dto)).thenReturn(product);
-
-        assertThrows(IllegalArgumentException.class, () ->
+        assertThrows(IllegalStateException.class, () ->
                 productService.saveWithTransaction(dto, true));
     }
 
