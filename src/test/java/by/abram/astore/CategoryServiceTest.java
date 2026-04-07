@@ -16,6 +16,7 @@ import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 
 import java.util.List;
+import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
@@ -68,5 +69,34 @@ class CategoryServiceTest {
         when(categoryRepository.findAll(any(PageRequest.class))).thenReturn(new PageImpl<>(List.of(new Category())));
         categoryService.findAll(0, 10);
         verify(categoryMapper).toDto(any());
+    }
+
+    @Test
+    void findById_Success() {
+        Long id = 1L;
+        Category category = new Category();
+        CategoryDto dto = new CategoryDto();
+        when(categoryRepository.findById(id)).thenReturn(Optional.of(category));
+        when(categoryMapper.toDto(category)).thenReturn(dto);
+
+        CategoryDto result = categoryService.findById(id);
+
+        assertNotNull(result);
+        verify(categoryRepository).findById(id);
+    }
+
+    @Test
+    void findById_ShouldThrow_WhenNotFound() {
+        when(categoryRepository.findById(1L)).thenReturn(Optional.empty());
+        assertThrows(EntityNotFoundException.class, () -> categoryService.findById(1L));
+    }
+
+    @Test
+    void delete_Success() {
+        Long id = 1L;
+        categoryService.delete(id);
+
+        verify(categoryRepository).deleteById(id);
+        verify(productCacheService).invalidateCache();
     }
 }

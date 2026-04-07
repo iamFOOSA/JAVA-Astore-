@@ -21,6 +21,7 @@ import java.math.BigDecimal;
 import java.util.List;
 import java.util.Optional;
 
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -56,5 +57,31 @@ class OrderServiceTest {
 
         verify(orderRepository).save(argThat(order ->
                 order.getTotalAmount().compareTo(BigDecimal.valueOf(100)) == 0));
+    }
+
+    @Test
+    void create_ShouldThrow_WhenNotEnoughStock() {
+        OrderDto dto = new OrderDto();
+        dto.setUserId(1L);
+        ItemDto itemDto = new ItemDto();
+        itemDto.setProductId(1L);
+        itemDto.setQuantity(1000);
+        dto.setItems(List.of(itemDto));
+
+        User user = new User();
+        Product product = new Product();
+        product.setQuantity(10);
+
+        when(userRepository.findById(1L)).thenReturn(Optional.of(user));
+        when(productRepository.findById(1L)).thenReturn(Optional.of(product));
+
+        assertThrows(by.abram.astore.exception.BusinessLogicException.class,
+                () -> orderService.create(dto));
+    }
+
+    @Test
+    void delete_Success() {
+        orderService.delete(1L);
+        verify(orderRepository).deleteById(1L);
     }
 }

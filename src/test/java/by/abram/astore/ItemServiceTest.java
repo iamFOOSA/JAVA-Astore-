@@ -4,11 +4,13 @@ import by.abram.astore.cache.ProductCacheService;
 import by.abram.astore.dto.ItemDto;
 import by.abram.astore.entity.Item;
 import by.abram.astore.entity.Order;
+import by.abram.astore.entity.Product;
 import by.abram.astore.mapper.ItemMapper;
 import by.abram.astore.repository.ItemRepository;
 import by.abram.astore.repository.OrderRepository;
 import by.abram.astore.repository.ProductRepository;
 import by.abram.astore.service.ItemService;
+import jakarta.persistence.EntityNotFoundException;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -20,7 +22,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -66,5 +68,36 @@ class ItemServiceTest {
 
         verify(itemRepository).delete(item);
         assertTrue(order.getItems().isEmpty());
+    }
+
+    @Test
+    void create_Success() {
+        Long orderId = 1L;
+        ItemDto dto = new ItemDto();
+        dto.setProductId(2L);
+        dto.setQuantity(5);
+
+        Order order = new Order();
+        Product product = new Product();
+        product.setName("Test Product");
+        product.setPrice(BigDecimal.TEN);
+        Item item = new Item();
+
+        when(orderRepository.findById(orderId)).thenReturn(Optional.of(order));
+        when(productRepository.findById(2L)).thenReturn(Optional.of(product));
+        when(itemMapper.toEntity(dto)).thenReturn(item);
+        when(itemRepository.save(item)).thenReturn(item);
+
+        itemService.create(orderId, dto);
+
+        verify(itemRepository).save(item);
+        verify(orderRepository).save(order);
+        assertEquals(product.getPrice(), item.getPrice());
+    }
+
+    @Test
+    void findById_ShouldThrow_WhenNotFound() {
+        when(itemRepository.findById(1L)).thenReturn(Optional.empty());
+        assertThrows(EntityNotFoundException.class, () -> itemService.findById(1L));
     }
 }
