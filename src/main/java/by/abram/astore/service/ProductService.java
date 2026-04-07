@@ -105,20 +105,22 @@ public class ProductService {
         productCacheService.invalidateCache();
     }
 
+    @Transactional
     public ProductDto saveWithoutTransaction(ProductDto dto, boolean throwException) {
         Product product = productMapper.toEntity(dto);
-        productRepository.save(product);
+
+        List<Category> categories = findExistingCategories(dto.getCategories());
+        product.setCategories(categories);
+
+        Product savedProduct = productRepository.save(product);
 
         if (throwException) {
             throw new IllegalArgumentException("Ошибка! Нет транзакции, продукт останется в БД. ");
         }
 
-        List<Category> categories = findExistingCategories(dto.getCategories());
-        product.setCategories(categories);
-
         productCacheService.invalidateCache();
 
-        return productMapper.toDto(product);
+        return productMapper.toDto(savedProduct);
     }
 
     @Transactional
@@ -142,6 +144,7 @@ public class ProductService {
         return processBulkImport(dtos, simulateError);
     }
 
+    @Transactional
     public List<ProductDto> bulkImportWithoutTransaction(List<ProductDto> dtos, boolean simulateError) {
         return processBulkImport(dtos, simulateError);
     }
@@ -150,23 +153,18 @@ public class ProductService {
         List<ProductDto> savedDtos = new ArrayList<>();
         int count = 0;
 
-        List<Product> productsToSave = dtos.stream()
-                .map(dto -> {
-                    Product product = productMapper.toEntity(dto);
-
-                    String validDescription = Optional.ofNullable(dto.getDescription())
-                            .filter(desc -> !desc.trim().isEmpty())
-                            .orElse("Описание отсутствует (добавлено автоматически)");
-                    product.setDescription(validDescription);
-
-                    List<Category> categories = findExistingCategories(dto.getCategories());
-                    product.setCategories(categories);
-                    return product;
-                })
-                .toList();
-
-        for (Product product : productsToSave) {
+        for (ProductDto dto : dtos) {
             count++;
+
+            Product product = productMapper.toEntity(dto);
+
+            String validDescription = Optional.ofNullable(dto.getDescription())
+                    .filter(desc -> !desc.trim().isEmpty())
+                    .orElse("Описание отсутствует (добавлено автоматически)");
+            product.setDescription(validDescription);
+
+            List<Category> categories = findExistingCategories(dto.getCategories());
+            product.setCategories(categories);
 
             if (simulateError && count == dtos.size()) {
                 throw new RuntimeException("Симуляция сбоя на товаре: " + product.getName() + ".");

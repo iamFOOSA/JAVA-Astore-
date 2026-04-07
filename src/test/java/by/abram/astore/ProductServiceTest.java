@@ -246,10 +246,12 @@ class ProductServiceTest {
     @Test
     void bulkImport_SimulateError_ShouldThrow() {
         ProductDto dto = new ProductDto();
-        when(productMapper.toEntity(any())).thenReturn(new Product());
+        List<ProductDto> dtos = List.of(dto, dto);
 
+        when(productMapper.toEntity(any())).thenReturn(new Product());
         assertThrows(RuntimeException.class, () ->
-                productService.bulkImportWithTransaction(List.of(dto, dto), true));
+                productService.bulkImportWithTransaction(dtos, true)
+        );
     }
 
     @Test

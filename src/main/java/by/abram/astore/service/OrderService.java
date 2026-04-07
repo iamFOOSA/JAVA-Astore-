@@ -36,7 +36,7 @@ public class OrderService {
     @Transactional
     public OrderDto create(OrderDto dto) {
         User user = userRepository.findById(dto.getUserId())
-                .orElseThrow(() -> new ResourceNotFoundException("User", dto.getUserId())); // Используем твой Exception
+                .orElseThrow(() -> new ResourceNotFoundException("User", dto.getUserId()));
 
         Order order = new Order();
         order.setUser(user);

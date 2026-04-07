@@ -51,9 +51,9 @@ public class GlobalExceptionHandler {
     }
     @ExceptionHandler(BusinessLogicException.class)
     public ResponseEntity<ErrorResponse> handleBusinessLogic(BusinessLogicException ex) {
-        return buildResponse(HttpStatus.UNPROCESSABLE_ENTITY, "Business Logic Error", ex.getMessage());
+        return buildResponse(HttpStatus.UNPROCESSABLE_CONTENT, "Business Logic Error", ex.getMessage());
     }
-    
+
     @ExceptionHandler(org.springframework.dao.DataIntegrityViolationException.class)
     public ResponseEntity<ErrorResponse> handleDataIntegrity(org.springframework.
                                                                          dao.DataIntegrityViolationException ex) {

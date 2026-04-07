@@ -16,7 +16,6 @@ import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 
 import java.util.List;
-import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
@@ -44,8 +43,10 @@ class CategoryServiceTest {
 
     @Test
     void update_ShouldThrow_WhenNotFound() {
-        when(categoryRepository.existsById(1L)).thenReturn(false);
-        assertThrows(EntityNotFoundException.class, () -> categoryService.update(1L, new CategoryDto()));
+        Long categoryId = 1L;
+        CategoryDto categoryDto = new CategoryDto();
+        when(categoryRepository.existsById(categoryId)).thenReturn(false);
+        assertThrows(EntityNotFoundException.class, () -> categoryService.update(categoryId, categoryDto));
     }
 
     @Test

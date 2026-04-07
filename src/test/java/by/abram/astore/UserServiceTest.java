@@ -57,7 +57,7 @@ class UserServiceTest {
         when(userRepository.save(any(User.class))).thenReturn(existingUser);
         when(userMapper.toDto(existingUser)).thenReturn(dto);
 
-        UserDto result = userService.update(id, dto);
+        userService.update(id, dto);
 
         assertEquals("test@mail.com", dto.getEmail());
         verify(productCacheService).invalidateCache();
@@ -65,8 +65,10 @@ class UserServiceTest {
 
     @Test
     void update_ShouldThrowException_WhenUserNotFound() {
-        when(userRepository.findById(1L)).thenReturn(Optional.empty());
-        assertThrows(EntityNotFoundException.class, () -> userService.update(1L, new UserDto()));
+        Long userId = 1L;
+        UserDto dto = new UserDto();
+        when(userRepository.findById(userId)).thenReturn(Optional.empty());
+        assertThrows(EntityNotFoundException.class, () -> userService.update(userId, dto));
     }
 
     @Test
