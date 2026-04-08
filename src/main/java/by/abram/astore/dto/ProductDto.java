@@ -4,7 +4,6 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
-import jakarta.validation.constraints.PastOrPresent;
 import lombok.Data;
 
 import java.math.BigDecimal;
@@ -36,8 +35,4 @@ public class ProductDto {
 
     @Schema(description = "Список категорий, к которым относится продукт")
     private List<String> categories;
-
-    @PastOrPresent(message = "Дата производства не может быть в будущем")
-    @Schema(description = "Дата производства", example = "2023-01-01")
-    private java.time.LocalDate manufactureDate;
 }
