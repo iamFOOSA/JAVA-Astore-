@@ -18,6 +18,8 @@ import org.springframework.data.domain.PageRequest;
 @RequiredArgsConstructor
 public class UserService {
 
+    private static final String DEFAULT_DEMO_PASSWORD = "demo-password";
+
     private final UserRepository userRepository;
     private final UserMapper userMapper;
     private final ProductCacheService productCacheService;
@@ -25,6 +27,9 @@ public class UserService {
     @Transactional
     public UserDto create(UserDto dto) {
         User user = userMapper.toEntity(dto);
+        if (user.getPassword() == null || user.getPassword().isBlank()) {
+            user.setPassword(DEFAULT_DEMO_PASSWORD);
+        }
         User savedUser = userRepository.save(user);
 
         productCacheService.invalidateCache();

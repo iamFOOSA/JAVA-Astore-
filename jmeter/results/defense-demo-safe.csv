@@ -1,0 +1,25 @@
+timeStamp,elapsed,label,responseCode,responseMessage,threadName,dataType,success,failureMessage,bytes,sentBytes,grpThreads,allThreads,URL,Latency,IdleTime,Connect
+1777208318583,112,A1 Start Async Report (expect CREATED),202,,01 Async Lifecycle Demo 1-1,text,true,,241,252,1,1,http://localhost:8081/api/products/async/report,107,0,11
+1777208320216,21,A2 Immediate Status (expect IN_PROGRESS),200,,01 Async Lifecycle Demo 1-1,text,true,,531,212,1,1,http://localhost:8081/api/products/async/report/46a63515-467d-4a45-bfc5-a69ca66658e8/status,21,0,0
+1777208321742,5,A3 Midway Status (still running or already completed),200,,01 Async Lifecycle Demo 1-1,text,true,,531,212,1,1,http://localhost:8081/api/products/async/report/46a63515-467d-4a45-bfc5-a69ca66658e8/status,5,0,0
+1777208323254,6,A4 Final Status (expect COMPLETED),200,,01 Async Lifecycle Demo 1-1,text,true,,531,212,1,1,http://localhost:8081/api/products/async/report/46a63515-467d-4a45-bfc5-a69ca66658e8/status,6,0,0
+1777208323267,199,B1 CPU Heavy Race Condition Request,200,,02 Overload Demo (requests should start failing) 2-1,text,true,,342,180,4,4,http://localhost:8081/api/products/race-condition?ops=15000,199,0,1
+1777208323371,122,B1 CPU Heavy Race Condition Request,200,,02 Overload Demo (requests should start failing) 2-3,text,true,,341,180,4,4,http://localhost:8081/api/products/race-condition?ops=15000,122,0,1
+1777208323321,223,B1 CPU Heavy Race Condition Request,200,,02 Overload Demo (requests should start failing) 2-2,text,true,,341,180,4,4,http://localhost:8081/api/products/race-condition?ops=15000,223,0,1
+1777208323471,100,B1 CPU Heavy Race Condition Request,200,,02 Overload Demo (requests should start failing) 2-5,text,true,,341,180,4,4,http://localhost:8081/api/products/race-condition?ops=15000,100,0,0
+1777208323521,109,B1 CPU Heavy Race Condition Request,200,,02 Overload Demo (requests should start failing) 2-6,text,true,,341,180,4,4,http://localhost:8081/api/products/race-condition?ops=15000,108,0,0
+1777208323421,239,B1 CPU Heavy Race Condition Request,200,,02 Overload Demo (requests should start failing) 2-4,text,true,,341,180,3,3,http://localhost:8081/api/products/race-condition?ops=15000,239,0,1
+1777208323571,91,B1 CPU Heavy Race Condition Request,200,,02 Overload Demo (requests should start failing) 2-7,text,true,,341,180,2,2,http://localhost:8081/api/products/race-condition?ops=15000,91,0,1
+1777208323623,103,B1 CPU Heavy Race Condition Request,200,,02 Overload Demo (requests should start failing) 2-8,text,true,,342,180,3,3,http://localhost:8081/api/products/race-condition?ops=15000,103,0,2
+1777208323672,103,B1 CPU Heavy Race Condition Request,200,,02 Overload Demo (requests should start failing) 2-9,text,true,,341,180,3,3,http://localhost:8081/api/products/race-condition?ops=15000,103,0,0
+1777208323722,106,B1 CPU Heavy Race Condition Request,200,,02 Overload Demo (requests should start failing) 2-10,text,true,,342,180,3,3,http://localhost:8081/api/products/race-condition?ops=15000,106,0,0
+1777208323772,100,B1 CPU Heavy Race Condition Request,200,,02 Overload Demo (requests should start failing) 2-11,text,true,,342,180,3,3,http://localhost:8081/api/products/race-condition?ops=15000,100,0,0
+1777208323822,96,B1 CPU Heavy Race Condition Request,200,,02 Overload Demo (requests should start failing) 2-12,text,true,,341,180,2,2,http://localhost:8081/api/products/race-condition?ops=15000,96,0,0
+1777208323872,110,B1 CPU Heavy Race Condition Request,200,,02 Overload Demo (requests should start failing) 2-13,text,true,,342,180,3,3,http://localhost:8081/api/products/race-condition?ops=15000,110,0,1
+1777208323921,124,B1 CPU Heavy Race Condition Request,200,,02 Overload Demo (requests should start failing) 2-14,text,true,,342,180,3,3,http://localhost:8081/api/products/race-condition?ops=15000,123,0,1
+1777208323972,95,B1 CPU Heavy Race Condition Request,200,,02 Overload Demo (requests should start failing) 2-15,text,true,,341,180,2,2,http://localhost:8081/api/products/race-condition?ops=15000,95,0,0
+1777208324022,92,B1 CPU Heavy Race Condition Request,200,,02 Overload Demo (requests should start failing) 2-16,text,true,,341,180,2,2,http://localhost:8081/api/products/race-condition?ops=15000,92,0,0
+1777208324068,98,B1 CPU Heavy Race Condition Request,200,,02 Overload Demo (requests should start failing) 2-17,text,true,,341,180,2,2,http://localhost:8081/api/products/race-condition?ops=15000,98,0,1
+1777208324121,98,B1 CPU Heavy Race Condition Request,200,,02 Overload Demo (requests should start failing) 2-18,text,true,,341,180,2,2,http://localhost:8081/api/products/race-condition?ops=15000,98,0,1
+1777208324171,91,B1 CPU Heavy Race Condition Request,200,,02 Overload Demo (requests should start failing) 2-19,text,true,,341,180,2,2,http://localhost:8081/api/products/race-condition?ops=15000,91,0,1
+1777208324221,81,B1 CPU Heavy Race Condition Request,200,,02 Overload Demo (requests should start failing) 2-20,text,true,,342,180,1,1,http://localhost:8081/api/products/race-condition?ops=15000,81,0,1

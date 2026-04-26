@@ -1,17 +1,22 @@
 package by.abram.astore;
 
 import by.abram.astore.cache.ProductCacheService;
-import by.abram.astore.dto.ProductDto;
+import by.abram.astore.dto.AsyncTaskCreateResponse;
+import by.abram.astore.dto.AsyncTaskReportSummary;
+import by.abram.astore.dto.AsyncTaskStatusResponse;
 import by.abram.astore.dto.ProductCategoryDTO;
+import by.abram.astore.dto.ProductDto;
+import by.abram.astore.dto.RaceConditionResponse;
 import by.abram.astore.entity.Category;
 import by.abram.astore.entity.Item;
 import by.abram.astore.entity.Product;
+import by.abram.astore.exception.ResourceNotFoundException;
 import by.abram.astore.mapper.ProductMapper;
 import by.abram.astore.repository.CategoryRepository;
 import by.abram.astore.repository.ItemRepository;
 import by.abram.astore.repository.ProductRepository;
+import by.abram.astore.service.ProductAsyncService;
 import by.abram.astore.service.ProductService;
-import jakarta.persistence.EntityNotFoundException;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -24,22 +29,87 @@ import org.springframework.data.domain.PageRequest;
 import java.math.BigDecimal;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.CompletableFuture;
 
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.*;
-import static org.mockito.Mockito.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.anyMap;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 class ProductServiceTest {
 
-    @Mock private ProductRepository productRepository;
-    @Mock private CategoryRepository categoryRepository;
-    @Mock private ItemRepository itemRepository;
-    @Mock private ProductMapper productMapper;
-    @Mock private ProductCacheService productCacheService;
+    @Mock
+    private ProductRepository productRepository;
 
-    @InjectMocks private ProductService productService;
+    @Mock
+    private CategoryRepository categoryRepository;
+
+    @Mock
+    private ItemRepository itemRepository;
+
+    @Mock
+    private ProductMapper productMapper;
+
+    @Mock
+    private ProductCacheService productCacheService;
+
+    @Mock
+    private ProductAsyncService productAsyncService;
+
+    @InjectMocks
+    private ProductService productService;
+
+    @Test
+    void startAsyncReportGeneration_ShouldReturnTaskId() {
+        when(productAsyncService.generateReport(anyString(), anyMap()))
+                .thenReturn(CompletableFuture.completedFuture(new AsyncTaskReportSummary(
+                        0,
+                        0,
+                        0,
+                        BigDecimal.ZERO
+                )));
+
+        AsyncTaskCreateResponse response = productService.startAsyncReportGeneration();
+
+        assertNotNull(response);
+        assertNotNull(response.taskId());
+        assertEquals("CREATED", response.status());
+        verify(productAsyncService).generateReport(anyString(), anyMap());
+    }
+
+    @Test
+    void getTaskStatus_ShouldReturnCreatedStatus() {
+        when(productAsyncService.generateReport(anyString(), anyMap()))
+                .thenReturn(CompletableFuture.completedFuture(new AsyncTaskReportSummary(
+                        0,
+                        0,
+                        0,
+                        BigDecimal.ZERO
+                )));
+
+        AsyncTaskCreateResponse response = productService.startAsyncReportGeneration();
+        AsyncTaskStatusResponse status = productService.getTaskStatus(response.taskId());
+
+        assertNotNull(status);
+        assertEquals(response.taskId(), status.taskId());
+        assertEquals("CREATED", status.status());
+        assertEquals(null, status.reportSummary());
+    }
+
+    @Test
+    void getTaskStatus_ShouldThrow_WhenTaskDoesNotExist() {
+        assertThrows(ResourceNotFoundException.class, () -> productService.getTaskStatus("missing-task-id"));
+    }
 
     @Test
     void create_ShouldSaveProductAndReturnDto() {
@@ -49,7 +119,7 @@ class ProductServiceTest {
         Category category = new Category();
 
         when(productMapper.toEntity(dto)).thenReturn(product);
-        when(categoryRepository.findByNameIn(anyList())).thenReturn(List.of(category));
+        when(categoryRepository.findByNameIn(any())).thenReturn(List.of(category));
         when(productRepository.save(product)).thenReturn(product);
         when(productMapper.toDto(product)).thenReturn(dto);
 
@@ -71,6 +141,7 @@ class ProductServiceTest {
         ProductDto result = productService.findById(1L);
 
         assertNotNull(result);
+        assertEquals(1, productService.getTotalProductViews());
         verify(productRepository).findById(1L);
     }
 
@@ -78,7 +149,7 @@ class ProductServiceTest {
     void findById_ShouldThrowException_WhenProductDoesNotExist() {
         when(productRepository.findById(1L)).thenReturn(Optional.empty());
 
-        assertThrows(EntityNotFoundException.class, () -> productService.findById(1L));
+        assertThrows(ResourceNotFoundException.class, () -> productService.findById(1L));
     }
 
     @Test
@@ -97,12 +168,58 @@ class ProductServiceTest {
     }
 
     @Test
-    void searchByJpql_ShouldReturnPage() {
-        when(productRepository.findProductsByUserAndCategoryJPQL(anyLong(), anyString(), any()))
-                .thenReturn(new PageImpl<>(List.of(new Product())));
+    void demonstrateRaceCondition_ShouldKeepSafeCountersConsistent() {
+        RaceConditionResponse response = productService.demonstrateRaceCondition(2_000);
 
-        productService.searchByJpql(1L, "Category", 0, 5);
-        verify(productMapper).toDto(any());
+        assertEquals(50, response.threads());
+        assertEquals(response.expectedTotal(), response.synchronizedCounter());
+        assertEquals(response.expectedTotal(), response.atomicCounter());
+    }
+
+    @Test
+    void getAsyncStats_ShouldGroupStatuses() {
+        when(productAsyncService.generateReport(anyString(), anyMap()))
+                .thenAnswer(invocation -> {
+                    String taskId = invocation.getArgument(0);
+                    Map<String, AsyncTaskStatusResponse> statuses = invocation.getArgument(1);
+                    statuses.put(taskId, new AsyncTaskStatusResponse(
+                            taskId,
+                            "COMPLETED",
+                            statuses.get(taskId).createdAt(),
+                            statuses.get(taskId).createdAt(),
+                            statuses.get(taskId).createdAt(),
+                            "done",
+                            new AsyncTaskReportSummary(1, 1, 1, BigDecimal.ONE)
+                    ));
+                    return CompletableFuture.completedFuture(new AsyncTaskReportSummary(
+                            1,
+                            1,
+                            1,
+                            BigDecimal.ONE
+                    ));
+                });
+
+        productService.startAsyncReportGeneration();
+
+        Map<String, Long> stats = productService.getAsyncStats();
+
+        assertEquals(1L, stats.get("COMPLETED"));
+    }
+
+    @Test
+    void searchByJpql_ShouldReturnPage() {
+        Product product = new Product();
+        ProductDto dto = new ProductDto();
+
+        when(productRepository.findProductsByUserAndCategoryJPQL(anyLong(), anyString(), any()))
+                .thenReturn(new PageImpl<>(List.of(product)));
+        when(productMapper.toDto(product)).thenReturn(dto);
+
+        Page<ProductDto> result = productService.searchByJpql(1L, "Category", 0, 5);
+
+        assertNotNull(result);
+        assertEquals(1, result.getTotalElements());
+        verify(productMapper).toDto(product);
     }
 
     @Test
@@ -130,7 +247,7 @@ class ProductServiceTest {
         Category category = new Category();
 
         when(productRepository.findById(1L)).thenReturn(Optional.of(product));
-        when(categoryRepository.findByNameIn(anyList())).thenReturn(List.of(category));
+        when(categoryRepository.findByNameIn(any())).thenReturn(List.of(category));
         when(productRepository.save(product)).thenReturn(product);
         when(productMapper.toDto(product)).thenReturn(dto);
 
@@ -149,7 +266,7 @@ class ProductServiceTest {
         ProductDto dto = new ProductDto();
         when(productRepository.findById(1L)).thenReturn(Optional.empty());
 
-        assertThrows(EntityNotFoundException.class, () -> productService.update(1L, dto));
+        assertThrows(ResourceNotFoundException.class, () -> productService.update(1L, dto));
     }
 
     @Test
@@ -160,15 +277,23 @@ class ProductServiceTest {
         item2.setProduct(new Product());
         List<Item> items = List.of(item1, item2);
 
+        when(productRepository.existsById(1L)).thenReturn(true);
         when(itemRepository.findByProductId(1L)).thenReturn(items);
 
         productService.delete(1L);
 
-        assertNull(item1.getProduct());
-        assertNull(item2.getProduct());
+        assertEquals(null, item1.getProduct());
+        assertEquals(null, item2.getProduct());
         verify(itemRepository).saveAll(items);
         verify(productRepository).deleteById(1L);
         verify(productCacheService).invalidateCache();
+    }
+
+    @Test
+    void delete_ShouldThrow_WhenProductDoesNotExist() {
+        when(productRepository.existsById(1L)).thenReturn(false);
+
+        assertThrows(ResourceNotFoundException.class, () -> productService.delete(1L));
     }
 
     @Test
@@ -249,6 +374,7 @@ class ProductServiceTest {
         List<ProductDto> dtos = List.of(dto, dto);
 
         when(productMapper.toEntity(any())).thenReturn(new Product());
+
         assertThrows(RuntimeException.class, () ->
                 productService.bulkImportWithTransaction(dtos, true)
         );
@@ -270,12 +396,15 @@ class ProductServiceTest {
         verify(productRepository).save(any());
     }
 
-
     @Test
     void findExistingCategories_ShouldReturnEmpty_WhenNull() {
         ProductDto dto = new ProductDto();
+        Product product = new Product();
+
         dto.setCategories(null);
-        when(productMapper.toEntity(dto)).thenReturn(new Product());
+        when(productMapper.toEntity(dto)).thenReturn(product);
+        when(productRepository.save(product)).thenReturn(product);
+        when(productMapper.toDto(product)).thenReturn(dto);
 
         productService.create(dto);
 
@@ -285,8 +414,12 @@ class ProductServiceTest {
     @Test
     void findExistingCategories_ShouldReturnEmpty_WhenEmptyList() {
         ProductDto dto = new ProductDto();
+        Product product = new Product();
+
         dto.setCategories(Collections.emptyList());
-        when(productMapper.toEntity(dto)).thenReturn(new Product());
+        when(productMapper.toEntity(dto)).thenReturn(product);
+        when(productRepository.save(product)).thenReturn(product);
+        when(productMapper.toDto(product)).thenReturn(dto);
 
         productService.create(dto);
 

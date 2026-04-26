@@ -22,6 +22,10 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
 
     @Override
     @EntityGraph(attributePaths = { "categories" })
+    Page<Product> findAll(Pageable pageable);
+
+    @Override
+    @EntityGraph(attributePaths = { "categories" })
     Optional<Product> findById(Long id);
 
     @Query("SELECT DISTINCT p FROM Product p " +

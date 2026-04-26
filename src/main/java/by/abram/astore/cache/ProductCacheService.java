@@ -24,19 +24,19 @@ public class ProductCacheService {
 
     public Page<ProductDto> getProducts(Long userId, String categoryName, int page, int size) {
         ProductCacheKey key = new ProductCacheKey(userId, categoryName, page, size);
+        Page<ProductDto> cachedResult = cache.get(key);
 
-        if (cache.containsKey(key)) {
+        if (cachedResult != null) {
             log.info("КЭШ: Извлекаются данные из памяти для ключа {}", key.hashCode());
-            return cache.get(key);
+            return cachedResult;
         }
 
-        log.info("БД: Данных в кэше нет, вызов из базы");
-        Page<ProductDto> result = productRepository.findProductsByUserAndCategoryJPQL(
-                        userId, categoryName, PageRequest.of(page, size))
-                .map(productMapper::toDto);
-
-        cache.put(key, result);
-        return result;
+        return cache.computeIfAbsent(key, currentKey -> {
+            log.info("БД: Данных в кэше нет, вызов из базы");
+            return productRepository.findProductsByUserAndCategoryJPQL(
+                            userId, categoryName, PageRequest.of(page, size))
+                    .map(productMapper::toDto);
+        });
     }
 
     public void invalidateCache() {
