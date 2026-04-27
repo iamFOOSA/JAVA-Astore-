@@ -19,6 +19,7 @@
           </elementProp>
         </collectionProp>
       </elementProp>
+      <boolProp name="TestPlan.functional_mode">false</boolProp>
     </TestPlan>
     <hashTree>
       <ConfigTestElement guiclass="HttpDefaultsGui" testclass="ConfigTestElement" testname="HTTP Request Defaults">
@@ -169,7 +170,7 @@
         </HTTPSamplerProxy>
         <hashTree/>
       </hashTree>
-      <ThreadGroup guiclass="ThreadGroupGui" testclass="ThreadGroup" testname="02 Mixed API Load (major endpoints, no DELETE)">
+      <ThreadGroup guiclass="ThreadGroupGui" testclass="ThreadGroup" testname="02 Mixed API Load (major endpoints, no DELETE)" enabled="false">
         <stringProp name="ThreadGroup.num_threads">${__P(mixThreads,40)}</stringProp>
         <stringProp name="ThreadGroup.ramp_time">${__P(mixRampUp,3)}</stringProp>
         <boolProp name="ThreadGroup.same_user_on_next_iteration">true</boolProp>
@@ -321,7 +322,7 @@
             <hashTree/>
           </hashTree>
         </hashTree>
-        <HTTPSamplerProxy guiclass="HttpTestSampleGui" testclass="HTTPSamplerProxy" testname="GET /api/products/race-condition?ops=mixRaceOps (early load spike)">
+        <HTTPSamplerProxy guiclass="HttpTestSampleGui" testclass="HTTPSamplerProxy" testname="GET /api/products/race-condition?ops=mixRaceOps (early load spike)" enabled="true">
           <stringProp name="HTTPSampler.path">/api/products/race-condition?ops=${__P(mixRaceOps,15000)}</stringProp>
           <stringProp name="HTTPSampler.method">GET</stringProp>
           <boolProp name="HTTPSampler.postBodyRaw">false</boolProp>
@@ -606,7 +607,7 @@
         </HTTPSamplerProxy>
         <hashTree/>
       </hashTree>
-      <ThreadGroup guiclass="ThreadGroupGui" testclass="ThreadGroup" testname="04 Async Parallel Demo " enabled="false">
+      <ThreadGroup guiclass="ThreadGroupGui" testclass="ThreadGroup" testname="04 Async Parallel Demo ">
         <intProp name="ThreadGroup.num_threads">1</intProp>
         <intProp name="ThreadGroup.ramp_time">1</intProp>
         <boolProp name="ThreadGroup.same_user_on_next_iteration">true</boolProp>

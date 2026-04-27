@@ -348,11 +348,7 @@ public class ProductService {
         private int value;
 
         void increment() {
-            int current = value;
-            if ((current & 15) == 0) {
-                Thread.yield();
-            }
-            value = current + 1;
+            value++;
         }
 
         int get() {
