@@ -5,6 +5,7 @@ import by.abram.astore.dto.UserDto;
 import by.abram.astore.entity.User;
 import by.abram.astore.exception.ResourceNotFoundException;
 import by.abram.astore.mapper.UserMapper;
+import by.abram.astore.repository.CartRepository;
 import by.abram.astore.repository.UserRepository;
 import by.abram.astore.service.UserService;
 import jakarta.persistence.EntityNotFoundException;
@@ -27,6 +28,7 @@ import static org.mockito.Mockito.*;
 class UserServiceTest {
 
     @Mock private UserRepository userRepository;
+    @Mock private CartRepository cartRepository;
     @Mock private UserMapper userMapper;
     @Mock private ProductCacheService productCacheService;
 
@@ -105,6 +107,7 @@ class UserServiceTest {
     void delete_ShouldInvokeRepository() {
         when(userRepository.existsById(1L)).thenReturn(true);
         userService.delete(1L);
+        verify(cartRepository).deleteByUserId(1L);
         verify(userRepository).deleteById(1L);
         verify(productCacheService).invalidateCache();
     }

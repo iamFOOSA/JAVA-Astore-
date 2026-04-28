@@ -13,6 +13,7 @@ import by.abram.astore.entity.Product;
 import by.abram.astore.exception.ResourceNotFoundException;
 import by.abram.astore.mapper.ProductMapper;
 import by.abram.astore.repository.CategoryRepository;
+import by.abram.astore.repository.CartItemRepository;
 import by.abram.astore.repository.ItemRepository;
 import by.abram.astore.repository.ProductRepository;
 import by.abram.astore.service.ProductAsyncService;
@@ -53,6 +54,9 @@ class ProductServiceTest {
 
     @Mock
     private CategoryRepository categoryRepository;
+
+    @Mock
+    private CartItemRepository cartItemRepository;
 
     @Mock
     private ItemRepository itemRepository;
@@ -165,6 +169,21 @@ class ProductServiceTest {
 
         assertEquals(1, result.getTotalElements());
         verify(productRepository).findAll(any(PageRequest.class));
+    }
+
+    @Test
+    void findByCategory_ShouldReturnPageOfDtos() {
+        Product product = new Product();
+        ProductDto dto = new ProductDto();
+
+        when(productRepository.findByCategoryId(anyLong(), any(PageRequest.class)))
+                .thenReturn(new PageImpl<>(List.of(product)));
+        when(productMapper.toDto(product)).thenReturn(dto);
+
+        Page<ProductDto> result = productService.findByCategory(1L, 0, 10);
+
+        assertEquals(1, result.getTotalElements());
+        verify(productRepository).findByCategoryId(anyLong(), any(PageRequest.class));
     }
 
     @Test
@@ -285,6 +304,7 @@ class ProductServiceTest {
         assertEquals(null, item1.getProduct());
         assertEquals(null, item2.getProduct());
         verify(itemRepository).saveAll(items);
+        verify(cartItemRepository).deleteByProductId(1L);
         verify(productRepository).deleteById(1L);
         verify(productCacheService).invalidateCache();
     }

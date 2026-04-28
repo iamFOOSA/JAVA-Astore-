@@ -33,6 +33,9 @@ public class ProductDto {
     @Schema(description = "Количество на складе", example = "50")
     private Integer quantity;
 
+    @Schema(description = "URL изображения товара", example = "/product-images/macbook-air.svg")
+    private String imageUrl;
+
     @Schema(description = "Список категорий, к которым относится продукт")
     private List<String> categories;
 }

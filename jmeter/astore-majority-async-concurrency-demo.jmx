@@ -170,7 +170,7 @@
         </HTTPSamplerProxy>
         <hashTree/>
       </hashTree>
-      <ThreadGroup guiclass="ThreadGroupGui" testclass="ThreadGroup" testname="02 Mixed API Load (major endpoints, no DELETE)" enabled="false">
+      <ThreadGroup guiclass="ThreadGroupGui" testclass="ThreadGroup" testname="02 Mixed API Load ">
         <stringProp name="ThreadGroup.num_threads">${__P(mixThreads,40)}</stringProp>
         <stringProp name="ThreadGroup.ramp_time">${__P(mixRampUp,3)}</stringProp>
         <boolProp name="ThreadGroup.same_user_on_next_iteration">true</boolProp>
@@ -181,7 +181,7 @@
         </elementProp>
       </ThreadGroup>
       <hashTree>
-        <ConfigTestElement guiclass="HttpDefaultsGui" testclass="ConfigTestElement" testname="Mixed Load Timeouts" enabled="true">
+        <ConfigTestElement guiclass="HttpDefaultsGui" testclass="ConfigTestElement" testname="Mixed Load Timeouts">
           <intProp name="HTTPSampler.connect_timeout">1000</intProp>
           <stringProp name="HTTPSampler.response_timeout">${__P(mixResponseTimeoutMs,350)}</stringProp>
           <stringProp name="HTTPSampler.domain">${host}</stringProp>
@@ -193,7 +193,7 @@
           <stringProp name="HTTPSampler.implementation">HttpClient4</stringProp>
         </ConfigTestElement>
         <hashTree/>
-        <ConstantTimer guiclass="ConstantTimerGui" testclass="ConstantTimer" testname="Pause" enabled="true">
+        <ConstantTimer guiclass="ConstantTimerGui" testclass="ConstantTimer" testname="Pause">
           <stringProp name="ConstantTimer.delay">${__P(mixPauseMs,0)}</stringProp>
         </ConstantTimer>
         <hashTree/>
@@ -322,7 +322,7 @@
             <hashTree/>
           </hashTree>
         </hashTree>
-        <HTTPSamplerProxy guiclass="HttpTestSampleGui" testclass="HTTPSamplerProxy" testname="GET /api/products/race-condition?ops=mixRaceOps (early load spike)" enabled="true">
+        <HTTPSamplerProxy guiclass="HttpTestSampleGui" testclass="HTTPSamplerProxy" testname="GET /api/products/race-condition?ops=mixRaceOps " enabled="true">
           <stringProp name="HTTPSampler.path">/api/products/race-condition?ops=${__P(mixRaceOps,15000)}</stringProp>
           <stringProp name="HTTPSampler.method">GET</stringProp>
           <boolProp name="HTTPSampler.postBodyRaw">false</boolProp>
@@ -607,7 +607,7 @@
         </HTTPSamplerProxy>
         <hashTree/>
       </hashTree>
-      <ThreadGroup guiclass="ThreadGroupGui" testclass="ThreadGroup" testname="04 Async Parallel Demo ">
+      <ThreadGroup guiclass="ThreadGroupGui" testclass="ThreadGroup" testname="04 Async Parallel Demo " enabled="false">
         <intProp name="ThreadGroup.num_threads">1</intProp>
         <intProp name="ThreadGroup.ramp_time">1</intProp>
         <boolProp name="ThreadGroup.same_user_on_next_iteration">true</boolProp>
@@ -825,7 +825,7 @@
         <stringProp name="filename"></stringProp>
       </ResultCollector>
       <hashTree/>
-      <ResultCollector guiclass="StatVisualizer" testclass="ResultCollector" testname="Aggregate Report" enabled="true">
+      <ResultCollector guiclass="StatVisualizer" testclass="ResultCollector" testname="Aggregate Report">
         <boolProp name="ResultCollector.error_logging">false</boolProp>
         <objProp>
           <name>saveConfig</name>

@@ -3,8 +3,10 @@ package by.abram.astore.service;
 import by.abram.astore.cache.ProductCacheService;
 import by.abram.astore.dto.CategoryDto;
 import by.abram.astore.entity.Category;
+import by.abram.astore.entity.Product;
 import by.abram.astore.mapper.CategoryMapper;
 import by.abram.astore.repository.CategoryRepository;
+import by.abram.astore.repository.ProductRepository;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -19,6 +21,7 @@ public class CategoryService {
     private final CategoryRepository categoryRepository;
     private final CategoryMapper categoryMapper;
     private final ProductCacheService productCacheService;
+    private final ProductRepository productRepository;
 
     @Transactional
     public CategoryDto create(CategoryDto dto) {
@@ -44,11 +47,11 @@ public class CategoryService {
 
     @Transactional
     public CategoryDto update(Long id, CategoryDto dto) {
-        if (!categoryRepository.existsById(id)) {
-            throw new EntityNotFoundException("Category not found with id" + id);
-        }
-        Category category = categoryMapper.toEntity(dto);
-        category.setId(id);
+        Category category = categoryRepository.findById(id)
+                .orElseThrow(() -> new EntityNotFoundException("Category not found with id" + id));
+
+        category.setName(dto.getName());
+        category.setDescription(dto.getDescription());
         Category updatedCategory = categoryRepository.save(category);
         productCacheService.invalidateCache();
 
@@ -57,7 +60,15 @@ public class CategoryService {
 
     @Transactional
     public void delete(Long id) {
-        categoryRepository.deleteById(id);
+        Category category = categoryRepository.findById(id)
+                .orElseThrow(() -> new EntityNotFoundException("Category not found with id" + id));
+
+        for (Product product : category.getProducts()) {
+            product.getCategories().remove(category);
+        }
+
+        productRepository.saveAll(category.getProducts());
+        categoryRepository.delete(category);
         productCacheService.invalidateCache();
     }
 }

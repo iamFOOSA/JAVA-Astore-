@@ -3,8 +3,10 @@ package by.abram.astore;
 import by.abram.astore.cache.ProductCacheService;
 import by.abram.astore.dto.CategoryDto;
 import by.abram.astore.entity.Category;
+import by.abram.astore.entity.Product;
 import by.abram.astore.mapper.CategoryMapper;
 import by.abram.astore.repository.CategoryRepository;
+import by.abram.astore.repository.ProductRepository;
 import by.abram.astore.service.CategoryService;
 import jakarta.persistence.EntityNotFoundException;
 import org.junit.jupiter.api.Test;
@@ -26,6 +28,7 @@ import static org.mockito.Mockito.*;
 class CategoryServiceTest {
 
     @Mock private CategoryRepository categoryRepository;
+    @Mock private ProductRepository productRepository;
     @Mock private CategoryMapper categoryMapper;
     @Mock private ProductCacheService productCacheService;
     @InjectMocks private CategoryService categoryService;
@@ -88,16 +91,19 @@ class CategoryServiceTest {
     void update_Success() {
         Long id = 1L;
         CategoryDto dto = new CategoryDto();
+        dto.setName("Updated");
+        dto.setDescription("Updated description");
         Category entity = new Category();
-        when(categoryRepository.existsById(id)).thenReturn(true);
-        when(categoryMapper.toEntity(dto)).thenReturn(entity);
+
+        when(categoryRepository.findById(id)).thenReturn(Optional.of(entity));
         when(categoryRepository.save(entity)).thenReturn(entity);
         when(categoryMapper.toDto(entity)).thenReturn(dto);
 
         CategoryDto result = categoryService.update(id, dto);
 
         assertNotNull(result);
-        assertEquals(id, entity.getId());
+        assertEquals("Updated", entity.getName());
+        assertEquals("Updated description", entity.getDescription());
         verify(productCacheService).invalidateCache();
     }
 
@@ -105,7 +111,7 @@ class CategoryServiceTest {
     void update_ShouldThrow_WhenNotFound() {
         Long id = 1L;
         CategoryDto dto = new CategoryDto();
-        when(categoryRepository.existsById(id)).thenReturn(false);
+        when(categoryRepository.findById(id)).thenReturn(Optional.empty());
 
         assertThrows(EntityNotFoundException.class, () -> categoryService.update(id, dto));
     }
@@ -113,10 +119,18 @@ class CategoryServiceTest {
     @Test
     void delete_Success() {
         Long id = 1L;
+        Category category = new Category();
+        Product product = new Product();
+        category.getProducts().add(product);
+        product.getCategories().add(category);
+
+        when(categoryRepository.findById(id)).thenReturn(Optional.of(category));
 
         categoryService.delete(id);
 
-        verify(categoryRepository).deleteById(id);
+        assertFalse(product.getCategories().contains(category));
+        verify(productRepository).saveAll(category.getProducts());
+        verify(categoryRepository).delete(category);
         verify(productCacheService).invalidateCache();
     }
 }

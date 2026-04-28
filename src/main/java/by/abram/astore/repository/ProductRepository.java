@@ -28,6 +28,10 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
     @EntityGraph(attributePaths = { "categories" })
     Optional<Product> findById(Long id);
 
+    @EntityGraph(attributePaths = { "categories" })
+    @Query("SELECT DISTINCT p FROM Product p JOIN p.categories c WHERE c.id = :categoryId")
+    Page<Product> findByCategoryId(@Param("categoryId") Long categoryId, Pageable pageable);
+
     @Query("SELECT DISTINCT p FROM Product p " +
             "JOIN FETCH p.categories c " +
             "WHERE c.name = :categoryName " +

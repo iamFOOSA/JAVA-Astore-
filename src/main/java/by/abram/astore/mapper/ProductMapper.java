@@ -16,6 +16,7 @@ public class ProductMapper {
         dto.setDescription(product.getDescription());
         dto.setPrice(product.getPrice());
         dto.setQuantity(product.getQuantity());
+        dto.setImageUrl(product.getImageUrl());
 
         dto.setCategories(product.getCategories().stream()
                 .map(Category::getName)
@@ -31,6 +32,7 @@ public class ProductMapper {
         product.setDescription(dto.getDescription());
         product.setPrice(dto.getPrice());
         product.setQuantity(dto.getQuantity());
+        product.setImageUrl(dto.getImageUrl());
         return product;
     }
 }

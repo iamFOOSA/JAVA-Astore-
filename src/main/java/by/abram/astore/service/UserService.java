@@ -5,6 +5,7 @@ import by.abram.astore.dto.UserDto;
 import by.abram.astore.entity.User;
 import by.abram.astore.exception.ResourceNotFoundException;
 import by.abram.astore.mapper.UserMapper;
+import by.abram.astore.repository.CartRepository;
 import by.abram.astore.repository.UserRepository;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
@@ -21,6 +22,7 @@ public class UserService {
     private static final String DEFAULT_DEMO_PASSWORD = "demo-password";
 
     private final UserRepository userRepository;
+    private final CartRepository cartRepository;
     private final UserMapper userMapper;
     private final ProductCacheService productCacheService;
 
@@ -71,6 +73,7 @@ public class UserService {
         if (!userRepository.existsById(id)) {
             throw new EntityNotFoundException("пользователь не найден с id: " + id);
         }
+        cartRepository.deleteByUserId(id);
         userRepository.deleteById(id);
 
         productCacheService.invalidateCache();
