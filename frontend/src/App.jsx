@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { api } from "./api";
 
 const statuses = ["NEW", "PROCESSING", "SHIPPED", "DELIVERED", "CANCELLED"];
@@ -52,7 +52,9 @@ const emptyUser = { email: "", firstName: "", lastName: "" };
 const emptyItem = { orderId: "", productId: "", quantity: 1, price: "" };
 const emptyOrderDraft = { userId: "", productId: "", quantity: 1 };
 const emptyQuickUser = { email: "", firstName: "", lastName: "" };
+const emptyPriceFilter = { min: "", max: "" };
 const ADMIN_USER_ID = "admin";
+const PRODUCTS_PER_PAGE = 8;
 
 function App() {
   const [activeTab, setActiveTab] = useState("products");
@@ -61,10 +63,14 @@ function App() {
   const [selectedCategoryId, setSelectedCategoryId] = useState("all");
   const [query, setQuery] = useState("");
   const [isSearchFocused, setIsSearchFocused] = useState(false);
+  const [productPage, setProductPage] = useState(1);
   const [cart, setCart] = useState([]);
   const [cartDrafts, setCartDrafts] = useState({});
+  const [activeCartProductId, setActiveCartProductId] = useState(null);
   const [isCartOpen, setIsCartOpen] = useState(false);
+  const [cartMode, setCartMode] = useState("full");
   const [favorites, setFavorites] = useState([]);
+  const [priceFilter, setPriceFilter] = useState(emptyPriceFilter);
   const [selectedUserId, setSelectedUserId] = useState(ADMIN_USER_ID);
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
   const [quickUserForm, setQuickUserForm] = useState(emptyQuickUser);
@@ -72,6 +78,8 @@ function App() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [, setNotice] = useState("");
+  const cartRef = useRef(null);
+  const userMenuRef = useRef(null);
 
   const [productForm, setProductForm] = useState(emptyProduct);
   const [categoryForm, setCategoryForm] = useState(emptyCategory);
@@ -79,7 +87,6 @@ function App() {
   const [itemForm, setItemForm] = useState(emptyItem);
   const [orderDraft, setOrderDraft] = useState(emptyOrderDraft);
   const [orderItems, setOrderItems] = useState([]);
-  const [productSearch, setProductSearch] = useState({ userId: "", categoryName: "", results: [] });
 
   const [editingProductId, setEditingProductId] = useState(null);
   const [editingCategoryId, setEditingCategoryId] = useState(null);
@@ -98,9 +105,27 @@ function App() {
       ? `${selectedUser.firstName} ${selectedUser.lastName}`
       : "Покупатель";
   const visibleTabs = isAdmin ? tabs : tabs.filter((tab) => tab.id === "products");
+  const productQuery = activeTab === "products" ? query : "";
+  const categoryQuery = activeTab === "categories" ? query : "";
+  const userQuery = activeTab === "users" ? query : "";
+  const orderQuery = activeTab === "orders" ? query : "";
+  const itemQuery = activeTab === "items" ? query : "";
+  const toolbarSearchPlaceholder = {
+    products: "Поиск по товарам текущей категории...",
+    categories: "Поиск по категориям...",
+    users: "Поиск по клиентам и email...",
+    orders: "Поиск по заказам и статусу...",
+    items: "Поиск по позициям заказа..."
+  }[activeTab] ?? "Поиск в текущем разделе...";
   const visibleProducts = catalogProducts
-    .filter((product) => matchesQuery(product, query))
+    .filter((product) => matchesQuery(product, productQuery))
+    .filter((product) => matchesPrice(product, priceFilter))
     .sort((first, second) => Number(first.id) - Number(second.id));
+  const totalProductPages = Math.max(1, Math.ceil(visibleProducts.length / PRODUCTS_PER_PAGE));
+  const currentProductPage = Math.min(productPage, totalProductPages);
+  const productPageStart = (currentProductPage - 1) * PRODUCTS_PER_PAGE;
+  const paginatedProducts = visibleProducts.slice(productPageStart, productPageStart + PRODUCTS_PER_PAGE);
+  const productPageNumbers = Array.from({ length: totalProductPages }, (_, index) => index + 1);
   const favoriteSet = new Set(favorites);
   const cartQuantity = cart.reduce((sum, item) => sum + item.quantity, 0);
   const cartTotal = cart.reduce((sum, item) => {
@@ -152,8 +177,36 @@ function App() {
   }, [activeTab, isAdmin]);
 
   useEffect(() => {
+    setProductPage(1);
+  }, [query, selectedCategoryId, priceFilter.min, priceFilter.max]);
+
+  useEffect(() => {
+    setProductPage((current) => Math.min(current, totalProductPages));
+  }, [totalProductPages]);
+
+  useEffect(() => {
+    setQuery("");
+    setIsSearchFocused(false);
+  }, [activeTab]);
+
+  useEffect(() => {
     loadCartForUser(selectedUserId);
   }, [selectedUserId]);
+
+  useEffect(() => {
+    function handleOutsideClick(event) {
+      if (isCartOpen && cartRef.current && !cartRef.current.contains(event.target)) {
+        setIsCartOpen(false);
+      }
+
+      if (isUserMenuOpen && userMenuRef.current && !userMenuRef.current.contains(event.target)) {
+        setIsUserMenuOpen(false);
+      }
+    }
+
+    document.addEventListener("mousedown", handleOutsideClick);
+    return () => document.removeEventListener("mousedown", handleOutsideClick);
+  }, [isCartOpen, isUserMenuOpen]);
 
   async function loadData() {
     setLoading(true);
@@ -204,6 +257,7 @@ function App() {
   }
 
   async function selectCategory(categoryId) {
+    setProductPage(1);
     setSelectedCategoryId(categoryId);
     setActiveTab("products");
     setLoading(true);
@@ -477,6 +531,14 @@ function App() {
     setCartDrafts((current) => ({ ...current, [productId]: quantity }));
   }
 
+  function setPriceFilterValue(field, value) {
+    if (value.startsWith("-") || Number(value) < 0) {
+      return;
+    }
+
+    setPriceFilter((current) => ({ ...current, [field]: value }));
+  }
+
   function addToCart(productId) {
     const product = productById[productId];
     const quantity = Number(getCartDraft(productId));
@@ -510,6 +572,7 @@ function App() {
     ).then((result) => {
       if (result) {
         setCart(normalizeCartItems(result));
+        setActiveCartProductId(null);
         setIsCartOpen(true);
       }
     });
@@ -615,36 +678,32 @@ function App() {
     run(() => api.updateOrderStatus(orderId, status), "Статус заказа обновлён");
   }
 
-  function handleProductSearch(event) {
-    event.preventDefault();
-
-    if (!productSearch.userId || !productSearch.categoryName) {
-      setError("Для серверной фильтрации выберите пользователя и категорию");
-      return;
-    }
-
-    run(
-      async () => {
-        const results = await api.searchProducts(productSearch);
-        setProductSearch((current) => ({ ...current, results }));
-        return results;
-      },
-      "Серверная фильтрация выполнена",
-      { reload: false }
-    );
+  function openCompactCart() {
+    setCartMode("compact");
+    setIsCartOpen((current) => cartMode === "compact" ? !current : true);
   }
 
-  const filteredCategories = categories.filter((category) => matchesQuery(category, query));
-  const filteredUsers = users.filter((user) => matchesQuery(user, query));
-  const filteredOrders = orders.filter((order) => matchesQuery(order, query));
-  const filteredItems = items.filter((item) => matchesQuery(item, query));
+  function openFullCart() {
+    setCartMode("full");
+    setIsCartOpen(true);
+  }
+
+  function resetProductFilters() {
+    setPriceFilter(emptyPriceFilter);
+    selectCategory("all");
+  }
+
+  const filteredCategories = categories.filter((category) => matchesQuery(category, categoryQuery));
+  const filteredUsers = users.filter((user) => matchesQuery(user, userQuery));
+  const filteredOrders = orders.filter((order) => matchesQuery(order, orderQuery));
+  const filteredItems = items.filter((item) => matchesQuery(item, itemQuery));
 
   return (
     <div className="app-shell">
       <header className="market-header">
         <div className="market-topbar">
           <button className="brand-button" type="button" onClick={() => selectCategory("all")}>Astore</button>
-          <div className="user-switcher">
+          <div className="user-switcher" ref={userMenuRef}>
             <button
               className="user-icon-button"
               type="button"
@@ -735,7 +794,7 @@ function App() {
               Админ-панель
             </button>
           ) : (
-            <button className="header-action strong" type="button" onClick={() => setIsCartOpen((current) => !current)}>
+            <button className="header-action strong" type="button" onClick={openCompactCart}>
               Корзина · {cartQuantity}
             </button>
           )}
@@ -783,13 +842,8 @@ function App() {
         <div className="market-showcase">
           <article className="promo-card main-promo">
             <div>
-              <p className="eyebrow">{selectedCategory ? selectedCategory.name : "Все категории"}</p>
-              <h2>{selectedCategory ? "Товары выбранной категории" : "Популярное сегодня"}</h2>
-              <p>
-                {selectedCategory
-                  ? selectedCategory.description
-                  : "Переключай категории без ввода названия: это отдельный режим просмотра каталога."}
-              </p>
+              <h2>{selectedCategory ? selectedCategory.name : "Популярное сегодня"}</h2>
+              {selectedCategory && <p>{selectedCategory.description}</p>}
               <p className="promo-note">Скорее переходите к просмотру: ниже уже открыт каталог с товарами.</p>
             </div>
             <img src={productImage(heroProducts[0])} alt={heroProducts[0]?.name || "Товар"} />
@@ -805,30 +859,34 @@ function App() {
         </div>
       </header>
 
-      <nav className="tabs" aria-label="Разделы приложения">
-        {visibleTabs.map((tab) => (
-          <button
-            key={tab.id}
-            className={activeTab === tab.id ? "tab active" : "tab"}
-            type="button"
-            onClick={() => setActiveTab(tab.id)}
-          >
-            {tab.label}
-          </button>
-        ))}
-      </nav>
+      {isAdmin && (
+        <nav className="tabs" aria-label="Разделы приложения">
+          {visibleTabs.map((tab) => (
+            <button
+              key={tab.id}
+              className={activeTab === tab.id ? "tab active" : "tab"}
+              type="button"
+              onClick={() => setActiveTab(tab.id)}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </nav>
+      )}
 
       {error && <div className="status status-error">{error}</div>}
 
       {isCartOpen && (
-        <section className="cart-drawer" aria-label="Корзина покупателя">
+        <section
+          className={cartMode === "compact" ? "cart-drawer cart-drawer-compact" : "cart-drawer"}
+          ref={cartRef}
+          aria-label="Корзина покупателя"
+        >
           <div className="cart-drawer-head">
             <div>
               <p className="eyebrow">Корзина покупателя</p>
               <h2>{selectedUser ? `${selectedUser.firstName} ${selectedUser.lastName}` : "Клиент не выбран"}</h2>
-              <p className="muted">Сохраняется в базе отдельно для выбранного покупателя.</p>
             </div>
-            <button className="ghost" type="button" onClick={() => setIsCartOpen(false)}>Закрыть</button>
           </div>
 
           {cartItems.length === 0 ? (
@@ -882,15 +940,17 @@ function App() {
                 </p>
               )}
             </div>
-            <div className="toolbar-actions">
-              <input
-                aria-label="Фильтр по данным"
-                placeholder="Товар, категория, email или статус..."
-                value={query}
-                onChange={(event) => setQuery(event.target.value)}
-              />
-              <button className="ghost" type="button" disabled={loading || busy} onClick={loadData}>Обновить</button>
-            </div>
+            {isAdmin && (
+              <div className="toolbar-actions">
+                <input
+                  aria-label="Фильтр по данным"
+                  placeholder={toolbarSearchPlaceholder}
+                  value={query}
+                  onChange={(event) => setQuery(event.target.value)}
+                />
+                <button className="ghost" type="button" disabled={loading || busy} onClick={loadData}>Обновить</button>
+              </div>
+            )}
           </div>
 
           {loading ? <div className="empty-state">Загружаю данные из API...</div> : renderContent()}
@@ -907,7 +967,7 @@ function App() {
             kicker="Режим покупателя"
             title={selectedUser ? selectedUserLabel : "Выберите покупателя"}
           />
-          <button className="header-action strong" type="button" onClick={() => setIsCartOpen(true)}>
+          <button className="header-action strong" type="button" onClick={openFullCart}>
             Открыть корзину · {cartQuantity}
           </button>
         </div>
@@ -920,7 +980,6 @@ function App() {
           <PanelTitle
             kicker="Управление товаром"
             title={editingProductId ? "Редактировать товар" : "Добавить товар"}
-            text="Товар можно привязать к одной или нескольким категориям маркетплейса."
           />
           <label>Название<input required value={productForm.name} onChange={(event) => setProductForm({ ...productForm, name: event.target.value })} /></label>
           <label>Описание<textarea value={productForm.description} onChange={(event) => setProductForm({ ...productForm, description: event.target.value })} /></label>
@@ -961,7 +1020,6 @@ function App() {
           <PanelTitle
             kicker="CRUD категорий"
             title={editingCategoryId ? "Редактировать категорию" : "Создать категорию"}
-            text="Категории используются быстрыми кнопками фильтрации на витрине."
           />
           <label>Название<input required value={categoryForm.name} onChange={(event) => setCategoryForm({ ...categoryForm, name: event.target.value })} /></label>
           <label>Описание<textarea value={categoryForm.description} onChange={(event) => setCategoryForm({ ...categoryForm, description: event.target.value })} /></label>
@@ -977,7 +1035,7 @@ function App() {
     if (activeTab === "users") {
       return (
         <form className="stack" onSubmit={handleUserSubmit}>
-          <PanelTitle kicker="CRUD пользователей" title={editingUserId ? "Редактировать пользователя" : "Создать пользователя"} text="Пользователь связан с заказами как OneToMany." />
+          <PanelTitle kicker="CRUD пользователей" title={editingUserId ? "Редактировать пользователя" : "Создать пользователя"} />
           <label>Email<input required type="email" value={userForm.email} onChange={(event) => setUserForm({ ...userForm, email: event.target.value })} /></label>
           <label>Имя<input required value={userForm.firstName} onChange={(event) => setUserForm({ ...userForm, firstName: event.target.value })} /></label>
           <label>Фамилия<input required value={userForm.lastName} onChange={(event) => setUserForm({ ...userForm, lastName: event.target.value })} /></label>
@@ -993,7 +1051,7 @@ function App() {
     if (activeTab === "orders") {
       return (
         <form className="stack" onSubmit={handleOrderSubmit}>
-          <PanelTitle kicker="CRUD заказов" title="Создать заказ" text="Заказ создаётся для пользователя и содержит OneToMany-список позиций." />
+          <PanelTitle kicker="CRUD заказов" title="Создать заказ" />
           <label>
             Пользователь
             <select required value={orderDraft.userId} onChange={(event) => setOrderDraft({ ...orderDraft, userId: event.target.value })}>
@@ -1025,7 +1083,7 @@ function App() {
     if (activeTab === "items") {
       return (
         <form className="stack" onSubmit={handleItemSubmit}>
-          <PanelTitle kicker="CRUD позиций" title={editingItemId ? "Редактировать позицию" : "Добавить позицию"} text="Позиция принадлежит заказу и ссылается на товар." />
+          <PanelTitle kicker="CRUD позиций" title={editingItemId ? "Редактировать позицию" : "Добавить позицию"}  />
           {!editingItemId && (
             <label>
               Заказ
@@ -1066,37 +1124,42 @@ function App() {
     if (activeTab === "products") {
       return (
         <div className="stack">
-          <div className="market-tools">
-            <strong>{selectedCategory ? selectedCategory.name : "Все товары"}</strong>
-            <span>{visibleProducts.length} позиций</span>
-            <button className="ghost" type="button" onClick={() => selectCategory("all")}>Сбросить категорию</button>
+          <div className="filter-card">
+            <div>
+              <strong>Выберите фильтр</strong>
+              <p>
+                {visibleProducts.length === 0
+                  ? "Ничего не найдено"
+                  : `${productPageStart + 1}-${Math.min(productPageStart + PRODUCTS_PER_PAGE, visibleProducts.length)} из ${visibleProducts.length}`}
+              </p>
+            </div>
+            <select value={selectedCategoryId} onChange={(event) => selectCategory(event.target.value)}>
+              <option value="all">Все категории</option>
+              {categories.map((category) => <option key={category.id} value={category.id}>{category.name}</option>)}
+            </select>
+            <div className="price-filter">
+              <input
+                min="0"
+                step="0.01"
+                type="number"
+                placeholder="Цена от"
+                value={priceFilter.min}
+                onChange={(event) => setPriceFilterValue("min", event.target.value)}
+              />
+              <input
+                min="0"
+                step="0.01"
+                type="number"
+                placeholder="Цена до"
+                value={priceFilter.max}
+                onChange={(event) => setPriceFilterValue("max", event.target.value)}
+              />
+            </div>
+            <button className="ghost" type="button" onClick={resetProductFilters}>Сбросить</button>
           </div>
 
-          <form className="filter-card" onSubmit={handleProductSearch}>
-            <div>
-              <strong>Серверная фильтрация из лабораторной</strong>
-              <p>Поиск товаров, которые покупал пользователь в выбранной категории.</p>
-            </div>
-            <select value={productSearch.userId} onChange={(event) => setProductSearch({ ...productSearch, userId: event.target.value })}>
-              <option value="">Пользователь</option>
-              {users.map((user) => <option key={user.id} value={user.id}>{user.firstName} {user.lastName} · {user.email}</option>)}
-            </select>
-            <select value={productSearch.categoryName} onChange={(event) => setProductSearch({ ...productSearch, categoryName: event.target.value })}>
-              <option value="">Категория</option>
-              {categories.map((category) => <option key={category.id} value={category.name}>{category.name}</option>)}
-            </select>
-            <button type="submit" disabled={busy}>Найти</button>
-          </form>
-
-          {productSearch.results.length > 0 && (
-            <div className="result-strip">
-              <strong>Результат:</strong>
-              {productSearch.results.map((product) => <span className="chip strong" key={product.id}>{product.name}</span>)}
-            </div>
-          )}
-
           <div className="product-grid">
-            {visibleProducts.map((product) => (
+            {paginatedProducts.map((product) => (
               <article className="market-card" key={product.id}>
                 <button
                   className={favoriteSet.has(product.id) ? "favorite active" : "favorite"}
@@ -1121,21 +1184,27 @@ function App() {
                 <div className="market-card-footer">
                   <strong>{formatMoney(product.price)}</strong>
                   {!isAdmin && (
-                    <div className="cart-add-controls">
-                      <button type="button" onClick={() => setCartDraft(product.id, getCartDraft(product.id) - 1)}>-</button>
-                      <input
-                        min="1"
-                        max={product.quantity ?? undefined}
-                        type="number"
-                        value={getCartDraft(product.id)}
-                        onChange={(event) => setCartDraft(product.id, event.target.value)}
-                        aria-label={`Количество ${product.name}`}
-                      />
-                      <button type="button" onClick={() => setCartDraft(product.id, getCartDraft(product.id) + 1)}>+</button>
-                      <button className="add-cart-button" type="button" onClick={() => addToCart(product.id)}>
+                    activeCartProductId === product.id ? (
+                      <div className="cart-add-controls expanded">
+                        <button type="button" onClick={() => setCartDraft(product.id, getCartDraft(product.id) - 1)}>-</button>
+                        <input
+                          min="1"
+                          max={product.quantity ?? undefined}
+                          type="number"
+                          value={getCartDraft(product.id)}
+                          onChange={(event) => setCartDraft(product.id, event.target.value)}
+                          aria-label={`Количество ${product.name}`}
+                        />
+                        <button type="button" onClick={() => setCartDraft(product.id, getCartDraft(product.id) + 1)}>+</button>
+                        <button className="add-cart-button" type="button" onClick={() => addToCart(product.id)}>
+                          Добавить {getCartDraft(product.id)} шт.
+                        </button>
+                      </div>
+                    ) : (
+                      <button className="add-cart-button" type="button" onClick={() => setActiveCartProductId(product.id)}>
                         В корзину
                       </button>
-                    </div>
+                    )
                   )}
                 </div>
                 {isAdmin && (
@@ -1147,7 +1216,42 @@ function App() {
               </article>
             ))}
           </div>
-          {visibleProducts.length === 0 && <EmptyState />}
+          {visibleProducts.length === 0 ? (
+            <EmptyState />
+          ) : (
+            <div className="pagination-bar" aria-label="Пагинация товаров">
+              <button
+                className="ghost"
+                type="button"
+                disabled={currentProductPage === 1}
+                onClick={() => setProductPage((current) => Math.max(1, current - 1))}
+              >
+                Назад
+              </button>
+              <div className="page-buttons">
+                {productPageNumbers.map((page) => (
+                  <button
+                    key={page}
+                    className={page === currentProductPage ? "page-button active" : "page-button"}
+                    type="button"
+                    onClick={() => setProductPage(page)}
+                    aria-label={`Страница ${page}`}
+                    aria-current={page === currentProductPage ? "page" : undefined}
+                  >
+                    {page}
+                  </button>
+                ))}
+              </div>
+              <button
+                className="ghost"
+                type="button"
+                disabled={currentProductPage === totalProductPages}
+                onClick={() => setProductPage((current) => Math.min(totalProductPages, current + 1))}
+              >
+                Вперёд
+              </button>
+            </div>
+          )}
         </div>
       );
     }
@@ -1187,7 +1291,7 @@ function App() {
               <article className="entity-card" key={user.id}>
                 <h3>{user.firstName} {user.lastName}</h3>
                 <p>{user.email}</p>
-                <div className="relation-line">User → {userOrders.length} orders</div>
+                <div className="relation-line">Заказов: {userOrders.length}</div>
                 <div className="card-footer">
                   <button className="link-button" type="button" onClick={() => editUser(user)}>Изменить</button>
                   <button className="danger link-button" type="button" onClick={() => deleteEntity(user.email, () => api.deleteUser(user.id))}>Удалить</button>
@@ -1268,7 +1372,7 @@ function PanelTitle({ kicker, title, text }) {
     <div>
       <p className="eyebrow">{kicker}</p>
       <h2>{title}</h2>
-      <p className="muted">{text}</p>
+      {text && <p className="muted">{text}</p>}
     </div>
   );
 }
@@ -1313,6 +1417,22 @@ function matchesQuery(entity, query) {
   }
 
   return JSON.stringify(entity).toLowerCase().includes(query.trim().toLowerCase());
+}
+
+function matchesPrice(product, priceFilter) {
+  const price = Number(product.price ?? 0);
+  const min = priceFilter.min === "" ? null : Math.max(0, Number(priceFilter.min));
+  const max = priceFilter.max === "" ? null : Math.max(0, Number(priceFilter.max));
+
+  if (min !== null && price < min) {
+    return false;
+  }
+
+  if (max !== null && price > max) {
+    return false;
+  }
+
+  return true;
 }
 
 function productImage(product) {
