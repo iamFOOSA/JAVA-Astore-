@@ -161,10 +161,10 @@ Workflow находится в `.github/workflows/ci-cd.yml` и выполняе
 1. Backend: `mvn -B test` и `mvn -B package -DskipTests`.
 2. Frontend: `npm ci` и `npm run build`.
 3. Docker: сборка backend-образа из `Dockerfile` и frontend-образа из `frontend/Dockerfile`.
-4. Deploy: вызов двух Render Deploy Hook после push в `main`.
+4. Deploy: вызов двух Render Deploy Hook после push в `main` или ручного запуска workflow на ветке `main`.
 5. Healthcheck: проверка backend `/actuator/health` и frontend `/health`.
 
-Для pull request выполняются сборка, тесты и Docker build. Деплой и production healthcheck запускаются только для push в `main`.
+Для pull request выполняются сборка, тесты и Docker build. Деплой и production healthcheck запускаются для push в `main` и ручного запуска workflow на ветке `main`.
 
 
 ## Качество кода (Checkstyle)
