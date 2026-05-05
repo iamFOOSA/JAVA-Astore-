@@ -14,9 +14,11 @@ WORKDIR /app
 
 RUN apk add --no-cache curl \
     && addgroup -S astore \
-    && adduser -S astore -G astore
+    && adduser -S astore -G astore \
+    && mkdir -p /app/logs/archive \
+    && chown -R astore:astore /app
 
-COPY --from=backend-build /workspace/target/*.jar app.jar
+COPY --chown=astore:astore --from=backend-build /workspace/target/*.jar app.jar
 
 EXPOSE 8080
 
