@@ -12,30 +12,22 @@ on:
 permissions:
   contents: read
 
+env:
+  JAVA_VERSION: "21"
+  NODE_VERSION: "22"
+  MAVEN_CLI_OPTS: "-B"
+  BACKEND_IMAGE_NAME: "astore-backend"
+  FRONTEND_IMAGE_NAME: "astore-frontend"
+  SONAR_HOST_URL: "https://sonarcloud.io"
+  SONAR_PROJECT_KEY: ${{ vars.SONAR_PROJECT_KEY || 'iamFOOSA_PNAY' }}
+  SONAR_ORGANIZATION: ${{ vars.SONAR_ORGANIZATION || 'iamfoosa' }}
+  SONAR_QUALITY_GATE_TIMEOUT: "300"
+  HEALTHCHECK_ATTEMPTS: "60"
+  HEALTHCHECK_INTERVAL_SECONDS: "15"
+
 jobs:
-  backend:
-    name: Backend build and tests
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Set up Java
-        uses: actions/setup-java@v4
-        with:
-          distribution: temurin
-          java-version: "21"
-          cache: maven
-
-      - name: Run backend tests
-        run: mvn -B test
-
-      - name: Build backend package
-        run: mvn -B package -DskipTests
-
   frontend:
-    name: Frontend build
+    name: Frontend Build
     runs-on: ubuntu-latest
 
     defaults:
@@ -49,7 +41,7 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: "22"
+          node-version: ${{ env.NODE_VERSION }}
           cache: npm
           cache-dependency-path: frontend/package-lock.json
 
@@ -59,8 +51,57 @@ jobs:
       - name: Build frontend
         run: npm run build
 
+  backend:
+    name: Backend Build & Test
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: ${{ env.JAVA_VERSION }}
+          cache: maven
+
+      - name: Cache SonarCloud packages
+        uses: actions/cache@v4
+        with:
+          path: ~/.sonar/cache
+          key: ${{ runner.os }}-sonar
+          restore-keys: ${{ runner.os }}-sonar
+
+      - name: Run backend build and tests
+        run: mvn ${MAVEN_CLI_OPTS} verify
+
+      - name: Run SonarCloud quality gate
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+        run: |
+          if [ -z "$SONAR_TOKEN" ]; then
+            echo "GitHub secret SONAR_TOKEN must be configured."
+            exit 1
+          fi
+
+          if [ -z "$SONAR_PROJECT_KEY" ] || [ -z "$SONAR_ORGANIZATION" ]; then
+            echo "GitHub variables SONAR_PROJECT_KEY and SONAR_ORGANIZATION must be configured."
+            exit 1
+          fi
+
+          mvn ${MAVEN_CLI_OPTS} org.sonarsource.scanner.maven:sonar-maven-plugin:sonar \
+            -Dsonar.host.url="${SONAR_HOST_URL}" \
+            -Dsonar.projectKey="${SONAR_PROJECT_KEY}" \
+            -Dsonar.organization="${SONAR_ORGANIZATION}" \
+            -Dsonar.token="${SONAR_TOKEN}" \
+            -Dsonar.qualitygate.wait=true \
+            -Dsonar.qualitygate.timeout="${SONAR_QUALITY_GATE_TIMEOUT}"
+
   docker:
-    name: Docker image builds
+    name: Docker Build
     runs-on: ubuntu-latest
     needs:
       - backend
@@ -78,72 +119,111 @@ jobs:
         with:
           context: .
           push: false
-          tags: astore-backend:${{ github.sha }}
+          tags: ${{ env.BACKEND_IMAGE_NAME }}:${{ github.sha }}
 
       - name: Build frontend Docker image
         uses: docker/build-push-action@v6
         with:
           context: ./frontend
           push: false
-          tags: astore-frontend:${{ github.sha }}
+          tags: ${{ env.FRONTEND_IMAGE_NAME }}:${{ github.sha }}
 
-  deploy:
-    name: Deploy to Render
+  deploy-frontend:
+    name: Deploy Frontend to Render
     runs-on: ubuntu-latest
     needs: docker
     if: github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
 
     steps:
-      - name: Trigger Render deploy
+      - name: Trigger Render frontend deploy
+        env:
+          FRONTEND_DEPLOY_HOOK_URL: ${{ secrets.RENDER_FRONTEND_DEPLOY_HOOK_URL }}
         run: |
-          BACKEND_DEPLOY_HOOK_URL='${{ secrets.RENDER_BACKEND_DEPLOY_HOOK_URL }}'
-          FRONTEND_DEPLOY_HOOK_URL='${{ secrets.RENDER_FRONTEND_DEPLOY_HOOK_URL }}'
+          if [ -z "$FRONTEND_DEPLOY_HOOK_URL" ]; then
+            echo "GitHub secret RENDER_FRONTEND_DEPLOY_HOOK_URL must be configured."
+            exit 1
+          fi
 
-          if [ -z "$BACKEND_DEPLOY_HOOK_URL" ] || [ -z "$FRONTEND_DEPLOY_HOOK_URL" ]; then
-            echo "GitHub secrets RENDER_BACKEND_DEPLOY_HOOK_URL and RENDER_FRONTEND_DEPLOY_HOOK_URL must be configured."
+          curl -fsS -X POST "$FRONTEND_DEPLOY_HOOK_URL"
+
+  deploy-backend:
+    name: Deploy Backend to Render
+    runs-on: ubuntu-latest
+    needs: docker
+    if: github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
+
+    steps:
+      - name: Trigger Render backend deploy
+        env:
+          BACKEND_DEPLOY_HOOK_URL: ${{ secrets.RENDER_BACKEND_DEPLOY_HOOK_URL }}
+        run: |
+          if [ -z "$BACKEND_DEPLOY_HOOK_URL" ]; then
+            echo "GitHub secret RENDER_BACKEND_DEPLOY_HOOK_URL must be configured."
             exit 1
           fi
 
           curl -fsS -X POST "$BACKEND_DEPLOY_HOOK_URL"
-          curl -fsS -X POST "$FRONTEND_DEPLOY_HOOK_URL"
 
-  healthcheck:
-    name: Production healthcheck
+  frontend-healthcheck:
+    name: Frontend Healthcheck
     runs-on: ubuntu-latest
-    needs: deploy
+    needs: deploy-frontend
     if: github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
     timeout-minutes: 15
 
     steps:
-      - name: Wait for deployed app
+      - name: Wait for frontend
+        env:
+          FRONTEND_HEALTH_URL: ${{ secrets.FRONTEND_HEALTH_URL }}
         run: |
-          BACKEND_HEALTH_URL='${{ secrets.BACKEND_HEALTH_URL }}'
-          FRONTEND_HEALTH_URL='${{ secrets.FRONTEND_HEALTH_URL }}'
-
-          if [ -z "$BACKEND_HEALTH_URL" ] || [ -z "$FRONTEND_HEALTH_URL" ]; then
-            echo "GitHub secrets BACKEND_HEALTH_URL and FRONTEND_HEALTH_URL must be configured."
+          if [ -z "$FRONTEND_HEALTH_URL" ]; then
+            echo "GitHub secret FRONTEND_HEALTH_URL must be configured."
             exit 1
           fi
 
-          check_url() {
-            local name="$1"
-            local url="$2"
-            local expected="$3"
+          for attempt in $(seq 1 "$HEALTHCHECK_ATTEMPTS"); do
+            if curl -fsS "$FRONTEND_HEALTH_URL" | grep -q 'OK'; then
+              echo "Frontend healthcheck passed on attempt $attempt."
+              exit 0
+            fi
 
-            for attempt in {1..60}; do
-              if curl -fsS "$url" | grep -q "$expected"; then
-                echo "$name healthcheck passed on attempt $attempt."
-                return 0
-              fi
+            echo "Waiting for frontend health, attempt $attempt/$HEALTHCHECK_ATTEMPTS..."
+            sleep "$HEALTHCHECK_INTERVAL_SECONDS"
+          done
 
-              echo "Waiting for $name health, attempt $attempt/60..."
-              sleep 15
-            done
+          echo "Frontend healthcheck failed."
+          curl -i "$FRONTEND_HEALTH_URL" || true
+          exit 1
 
-            echo "$name healthcheck failed."
-            curl -i "$url" || true
-            return 1
-          }
+  backend-healthcheck:
+    name: Backend Healthcheck
+    runs-on: ubuntu-latest
+    needs:
+      - deploy-backend
+      - frontend-healthcheck
+    if: github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
+    timeout-minutes: 15
 
-          check_url "backend" "$BACKEND_HEALTH_URL" '"status":"UP"'
-          check_url "frontend" "$FRONTEND_HEALTH_URL" 'OK'
+    steps:
+      - name: Wait for backend
+        env:
+          BACKEND_HEALTH_URL: ${{ secrets.BACKEND_HEALTH_URL }}
+        run: |
+          if [ -z "$BACKEND_HEALTH_URL" ]; then
+            echo "GitHub secret BACKEND_HEALTH_URL must be configured."
+            exit 1
+          fi
+
+          for attempt in $(seq 1 "$HEALTHCHECK_ATTEMPTS"); do
+            if curl -fsS "$BACKEND_HEALTH_URL" | grep -q '"status":"UP"'; then
+              echo "Backend healthcheck passed on attempt $attempt."
+              exit 0
+            fi
+
+            echo "Waiting for backend health, attempt $attempt/$HEALTHCHECK_ATTEMPTS..."
+            sleep "$HEALTHCHECK_INTERVAL_SECONDS"
+          done
+
+          echo "Backend healthcheck failed."
+          curl -i "$BACKEND_HEALTH_URL" || true
+          exit 1

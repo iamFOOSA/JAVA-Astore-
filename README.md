@@ -148,7 +148,11 @@ docker build -t astore-frontend ./frontend
 10. Добавить секрет `RENDER_FRONTEND_DEPLOY_HOOK_URL` со значением frontend Deploy Hook.
 11. Добавить секрет `BACKEND_HEALTH_URL=https://<backend-service>.onrender.com/actuator/health`.
 12. Добавить секрет `FRONTEND_HEALTH_URL=https://<frontend-service>.onrender.com/health`.
-13. Сделать push в ветку `main` или запустить workflow вручную через `Actions -> CI/CD -> Run workflow`.
+13. Добавить секрет `SONAR_TOKEN` из SonarCloud.
+14. При необходимости добавить GitHub Actions variables:
+   - `SONAR_PROJECT_KEY=iamFOOSA_PNAY`
+   - `SONAR_ORGANIZATION=<your-sonarcloud-organization-key>`
+15. Сделать push в ветку `main` или запустить workflow вручную через `Actions -> CI/CD -> Run workflow`.
 
 В `render.yaml` указан `autoDeployTrigger: off`, поэтому деплой запускается из GitHub Actions только после успешных сборок и тестов.
 
@@ -158,13 +162,17 @@ docker build -t astore-frontend ./frontend
 
 Workflow находится в `.github/workflows/ci-cd.yml` и выполняет:
 
-1. Backend: `mvn -B test` и `mvn -B package -DskipTests`.
-2. Frontend: `npm ci` и `npm run build`.
-3. Docker: сборка backend-образа из `Dockerfile` и frontend-образа из `frontend/Dockerfile`.
-4. Deploy: вызов двух Render Deploy Hook после push в `main` или ручного запуска workflow на ветке `main`.
-5. Healthcheck: проверка backend `/actuator/health` и frontend `/health`.
+1. `Frontend Build`: `npm ci` и `npm run build`.
+2. `Backend Build & Test`: `mvn -B verify`, JaCoCo coverage и SonarCloud Quality Gate.
+3. `Docker Build`: сборка backend-образа из `Dockerfile` и frontend-образа из `frontend/Dockerfile`.
+4. `Deploy Frontend to Render`: вызов frontend Render Deploy Hook.
+5. `Deploy Backend to Render`: вызов backend Render Deploy Hook.
+6. `Frontend Healthcheck`: проверка `/health` на frontend-сервисе.
+7. `Backend Healthcheck`: проверка `/actuator/health` на backend-сервисе.
 
-Для pull request выполняются сборка, тесты и Docker build. Деплой и production healthcheck запускаются для push в `main` и ручного запуска workflow на ветке `main`.
+Для pull request выполняются сборка, тесты, SonarCloud-анализ и Docker build. Деплой и healthcheck запускаются для push в `main` и ручного запуска workflow на ветке `main`.
+
+В workflow вынесены служебные переменные окружения: версии Java/Node.js, Maven-флаги, имена Docker-образов, SonarCloud-настройки и параметры healthcheck. Секреты не хранятся в Git и берутся только из GitHub Actions Secrets.
 
 
 ## Качество кода (Checkstyle)
