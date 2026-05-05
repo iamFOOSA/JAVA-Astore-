@@ -38,8 +38,9 @@ public class CategoryController {
     @Operation(summary = "Получить все категории", description = "Возвращает список всех категорий с пагинацией")
     public ResponseEntity<Page<CategoryDto>> findAll(
             @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "10") int size) {
-        return ResponseEntity.ok(categoryService.findAll(page, size));
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(required = false) String query) {
+        return ResponseEntity.ok(categoryService.findAll(page, size, query));
     }
 
     @GetMapping("/{id}")

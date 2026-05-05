@@ -39,8 +39,9 @@ public class OrderController {
     @Operation(summary = "Получить все заказы", description = "Возвращает список всех заказов в системе")
     public ResponseEntity<Page<OrderDto>> findAll(
             @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "10") int size) {
-        return ResponseEntity.ok(orderService.findAll(page, size));
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(required = false) String query) {
+        return ResponseEntity.ok(orderService.findAll(page, size, query));
     }
 
     @GetMapping("/{id}")

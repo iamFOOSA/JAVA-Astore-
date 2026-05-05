@@ -122,7 +122,7 @@ legend {
   top: 8px;
   z-index: 50;
   display: grid;
-  grid-template-columns: auto auto auto minmax(260px, 1fr) auto auto;
+  grid-template-columns: auto minmax(170px, 230px) minmax(280px, 1fr) minmax(150px, 190px) minmax(112px, 140px) minmax(112px, 140px) auto auto;
   gap: 10px;
   align-items: center;
   border-radius: 24px;
@@ -133,7 +133,6 @@ legend {
 }
 
 .brand-button,
-.catalog-button,
 .header-action,
 .ghost {
   color: var(--ink);
@@ -145,12 +144,6 @@ legend {
   background: var(--ink);
   font-weight: 800;
   letter-spacing: -0.03em;
-}
-
-.catalog-button {
-  color: #fff;
-  background: var(--blue);
-  font-weight: 750;
 }
 
 .header-action {
@@ -244,6 +237,27 @@ legend {
   background: #f4f5f7;
 }
 
+.category-inline-select,
+.price-inline-input {
+  min-height: 48px;
+  border: 0;
+  border-radius: 16px;
+  background: #f4f5f7;
+  font-weight: 720;
+}
+
+.category-inline-select {
+  color: var(--ink);
+}
+
+.price-inline-input {
+  min-width: 0;
+}
+
+.reset-inline-button {
+  min-height: 48px;
+}
+
 .search-suggestions {
   position: absolute;
   top: calc(100% + 8px);
@@ -274,111 +288,16 @@ legend {
   transform: none;
 }
 
-.market-hero {
-  display: grid;
-  grid-template-columns: 1fr minmax(260px, 360px);
-  gap: 14px;
-}
-
-.market-hero > div,
-.cart-preview,
-.promo-card,
 .panel {
   border-radius: 28px;
   background: rgba(255, 255, 255, 0.88);
   box-shadow: var(--shadow);
 }
 
-.market-hero > div:first-child {
-  padding: clamp(1.4rem, 4vw, 3rem);
-}
-
-.market-hero h1 {
-  max-width: 960px;
-  margin: 0.2rem 0 0.8rem;
-  color: var(--ink);
-  font-size: clamp(2.45rem, 6vw, 5.5rem);
-  font-weight: 780;
-  letter-spacing: -0.07em;
-  line-height: 0.96;
-}
-
-.market-hero p {
-  max-width: 760px;
-  margin: 0;
-  color: var(--muted);
-  font-size: clamp(1.04rem, 1.6vw, 1.32rem);
-  line-height: 1.36;
-}
-
-.cart-preview {
-  display: grid;
-  align-content: center;
-  gap: 0.55rem;
-  padding: 1.4rem;
-}
-
-.cart-preview span,
-.cart-preview small,
 .muted {
   color: var(--muted);
 }
 
-.cart-preview strong {
-  font-size: 2.5rem;
-  letter-spacing: -0.06em;
-}
-
-.eyebrow {
-  margin: 0;
-  color: #bf4800;
-  font-size: 0.78rem;
-  font-weight: 800;
-}
-
-.category-strip {
-  display: flex;
-  gap: 10px;
-  overflow-x: auto;
-  padding: 2px 2px 8px;
-}
-
-.category-pill {
-  flex: 0 0 auto;
-  color: var(--ink);
-  background: #fff;
-  border: 1px solid rgba(0, 0, 0, 0.06);
-  border-radius: 18px;
-  box-shadow: 0 8px 22px rgba(0, 0, 0, 0.06);
-}
-
-.category-pill.active {
-  color: #fff;
-  background: var(--ink);
-}
-
-.market-showcase {
-  display: grid;
-  grid-template-columns: 2fr repeat(3, 1fr);
-  gap: 14px;
-}
-
-.promo-card {
-  overflow: hidden;
-  min-height: 230px;
-  padding: 1.2rem;
-}
-
-.main-promo {
-  display: grid;
-  grid-template-columns: 1fr minmax(240px, 420px);
-  gap: 1rem;
-  align-items: center;
-  background: linear-gradient(135deg, #fff 0%, #eaf5ff 100%);
-}
-
-.main-promo h2,
-.mini-promo h3,
 .toolbar h2,
 .panel h2,
 .entity-card h3,
@@ -389,51 +308,11 @@ legend {
   letter-spacing: -0.045em;
 }
 
-.main-promo h2 {
-  margin: 0 0 0.7rem;
-  font-size: clamp(2rem, 4vw, 4rem);
-  line-height: 1;
-}
-
-.main-promo p,
-.mini-promo p,
 .market-card p,
 .entity-card p {
   margin: 0;
   color: var(--muted);
   line-height: 1.42;
-}
-
-.main-promo .promo-note {
-  margin-top: 0.9rem;
-  width: fit-content;
-  border-radius: 999px;
-  padding: 0.72rem 1rem;
-  color: var(--blue-dark);
-  background: #dff1ff;
-  font-weight: 800;
-}
-
-.main-promo img {
-  width: 100%;
-  max-height: 235px;
-  object-fit: contain;
-}
-
-.mini-promo {
-  display: grid;
-  align-content: space-between;
-  text-align: center;
-}
-
-.mini-promo img {
-  width: 100%;
-  max-height: 170px;
-  object-fit: contain;
-}
-
-.mini-promo h3 {
-  font-size: 1.05rem;
 }
 
 .tabs {
@@ -477,6 +356,11 @@ legend {
   margin-top: 18px;
 }
 
+.workspace.buyer-workspace {
+  grid-template-columns: 1fr;
+  margin-top: 12px;
+}
+
 .panel {
   padding: 1.25rem;
 }
@@ -484,6 +368,10 @@ legend {
 .form-panel {
   position: sticky;
   top: 14px;
+}
+
+.buyer-workspace .content-panel {
+  grid-column: 1 / -1;
 }
 
 .content-panel {
@@ -629,7 +517,8 @@ legend {
 .market-card {
   position: relative;
   display: grid;
-  gap: 0.75rem;
+  grid-template-rows: 230px 1fr;
+  gap: 0;
   overflow: hidden;
   border-radius: 24px;
   padding: 0.85rem;
@@ -639,35 +528,28 @@ legend {
 
 .market-card figure {
   display: grid;
-  min-height: 210px;
+  height: 230px;
   place-items: center;
   margin: -0.85rem -0.85rem 0;
   padding: 1rem;
-  background: #f6f7f9;
+  background:
+    radial-gradient(circle at 50% 48%, rgba(255, 255, 255, 0.72), transparent 62%),
+    #f7f8fa;
 }
 
 .market-card img {
   width: 100%;
   max-height: 210px;
   object-fit: contain;
+  -webkit-mask-image: radial-gradient(ellipse at center, #000 58%, rgba(0, 0, 0, 0.72) 72%, transparent 88%);
+  mask-image: radial-gradient(ellipse at center, #000 58%, rgba(0, 0, 0, 0.72) 72%, transparent 88%);
 }
 
-.favorite {
-  position: absolute;
-  right: 12px;
-  top: 12px;
-  z-index: 2;
-  width: 42px;
-  height: 42px;
-  padding: 0;
-  color: var(--muted);
-  background: rgba(255, 255, 255, 0.88);
-  border-radius: 999px;
-}
-
-.favorite.active {
-  color: #fff;
-  background: var(--red);
+.market-card-body {
+  display: grid;
+  grid-template-rows: 24px 58px 112px 76px auto;
+  gap: 0.7rem;
+  padding-top: 0.85rem;
 }
 
 .rating-row {
@@ -680,11 +562,31 @@ legend {
 
 .market-card h3 {
   font-size: 1.12rem;
+  line-height: 1.16;
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.market-card p {
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 4;
+}
+
+.market-card .chips {
+  display: grid;
+  align-content: start;
+  justify-items: start;
+  overflow: hidden;
 }
 
 .market-card-footer {
   justify-content: space-between;
   margin-top: auto;
+  align-self: end;
 }
 
 .market-card-footer strong {
@@ -839,10 +741,6 @@ legend {
 .cart-total-row strong {
   font-size: 1.75rem;
   letter-spacing: -0.05em;
-}
-
-.buyer-panel {
-  background: linear-gradient(145deg, #fff 0%, #eaf5ff 100%);
 }
 
 .card-grid {
@@ -1011,8 +909,6 @@ legend {
 
 @media (max-width: 1180px) {
   .market-topbar,
-  .market-hero,
-  .market-showcase,
   .workspace,
   .relations-grid {
     grid-template-columns: 1fr;
@@ -1043,5 +939,4 @@ legend {
   .price-filter {
     grid-template-columns: 1fr;
   }
-
 }

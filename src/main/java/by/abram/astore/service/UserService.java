@@ -63,8 +63,17 @@ public class UserService {
     }
 
     @Transactional(readOnly = true)
-    public Page<UserDto> findAll(int page, int size) {
-        return userRepository.findAll(PageRequest.of(page, size))
+    public Page<UserDto> findAll(int page, int size, String query) {
+        PageRequest pageRequest = PageRequest.of(page, size);
+        Page<User> users = query == null || query.isBlank()
+                ? userRepository.findAll(pageRequest)
+                : userRepository.findByEmailContainingIgnoreCaseOrFirstNameContainingIgnoreCaseOrLastNameContainingIgnoreCase(
+                        query.trim(),
+                        query.trim(),
+                        query.trim(),
+                        pageRequest);
+
+        return users
                 .map(userMapper::toDto);
     }
 

@@ -19,8 +19,10 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.data.jpa.domain.Specification;
 
 
+import jakarta.persistence.criteria.JoinType;
 import java.time.LocalDateTime;
 
 @Service
@@ -81,9 +83,28 @@ public class OrderService {
     }
 
     @Transactional(readOnly = true)
-    public Page<OrderDto> findAll(int page, int size) {
-        return orderRepository.findAll(PageRequest.of(page, size))
+    public Page<OrderDto> findAll(int page, int size, String query) {
+        if (query == null || query.isBlank()) {
+            return orderRepository.findAll(PageRequest.of(page, size))
+                    .map(orderMapper::toDto);
+        }
+
+        return orderRepository.findAll(buildSearchSpecification(query.trim()), PageRequest.of(page, size))
                 .map(orderMapper::toDto);
+    }
+
+    private Specification<Order> buildSearchSpecification(String query) {
+        return (root, criteriaQuery, criteriaBuilder) -> {
+            var userJoin = root.join("user", JoinType.LEFT);
+            String likeQuery = "%" + query.toLowerCase() + "%";
+
+            return criteriaBuilder.or(
+                    criteriaBuilder.like(criteriaBuilder.lower(root.get("status").as(String.class)), likeQuery),
+                    criteriaBuilder.like(criteriaBuilder.lower(userJoin.get("email")), likeQuery),
+                    criteriaBuilder.like(criteriaBuilder.lower(userJoin.get("firstName")), likeQuery),
+                    criteriaBuilder.like(criteriaBuilder.lower(userJoin.get("lastName")), likeQuery)
+            );
+        };
     }
 
     @Transactional

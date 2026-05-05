@@ -39,8 +39,9 @@ public class ItemController {
     @Operation(summary = "Получить все позиции", description = "Возвращает список всех позиций заказов")
     public ResponseEntity<Page<ItemDto>> findAll(
             @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "10") int size) {
-        return ResponseEntity.ok(itemService.findAll(page, size));
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(required = false) String query) {
+        return ResponseEntity.ok(itemService.findAll(page, size, query));
     }
 
     @GetMapping("/{id}")

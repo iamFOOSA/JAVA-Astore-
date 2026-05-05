@@ -26,6 +26,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.data.jpa.domain.Specification;
 
 import java.math.BigDecimal;
 import java.util.Collections;
@@ -184,6 +185,27 @@ class ProductServiceTest {
 
         assertEquals(1, result.getTotalElements());
         verify(productRepository).findByCategoryId(anyLong(), any(PageRequest.class));
+    }
+
+    @Test
+    void findCatalog_ShouldReturnFilteredPageOfDtos() {
+        Product product = new Product();
+        ProductDto dto = new ProductDto();
+
+        when(productRepository.findAll(any(Specification.class), any(PageRequest.class)))
+                .thenReturn(new PageImpl<>(List.of(product)));
+        when(productMapper.toDto(product)).thenReturn(dto);
+
+        Page<ProductDto> result = productService.findCatalog(
+                1L,
+                "phone",
+                BigDecimal.valueOf(10),
+                BigDecimal.valueOf(500),
+                0,
+                12);
+
+        assertEquals(1, result.getTotalElements());
+        verify(productRepository).findAll(any(Specification.class), any(PageRequest.class));
     }
 
     @Test

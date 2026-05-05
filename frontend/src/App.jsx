@@ -54,12 +54,13 @@ const emptyOrderDraft = { userId: "", productId: "", quantity: 1 };
 const emptyQuickUser = { email: "", firstName: "", lastName: "" };
 const emptyPriceFilter = { min: "", max: "" };
 const ADMIN_USER_ID = "admin";
-const PRODUCTS_PER_PAGE = 8;
+const PRODUCTS_PER_PAGE = 12;
 
 function App() {
   const [activeTab, setActiveTab] = useState("products");
   const [data, setData] = useState({ products: [], categories: [], users: [], orders: [], items: [] });
   const [catalogProducts, setCatalogProducts] = useState([]);
+  const [catalogPage, setCatalogPage] = useState({ totalPages: 1, totalElements: 0, number: 0 });
   const [selectedCategoryId, setSelectedCategoryId] = useState("all");
   const [query, setQuery] = useState("");
   const [isSearchFocused, setIsSearchFocused] = useState(false);
@@ -69,7 +70,6 @@ function App() {
   const [activeCartProductId, setActiveCartProductId] = useState(null);
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [cartMode, setCartMode] = useState("full");
-  const [favorites, setFavorites] = useState([]);
   const [priceFilter, setPriceFilter] = useState(emptyPriceFilter);
   const [selectedUserId, setSelectedUserId] = useState(ADMIN_USER_ID);
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
@@ -105,28 +105,12 @@ function App() {
       ? `${selectedUser.firstName} ${selectedUser.lastName}`
       : "Покупатель";
   const visibleTabs = isAdmin ? tabs : tabs.filter((tab) => tab.id === "products");
-  const productQuery = activeTab === "products" ? query : "";
-  const categoryQuery = activeTab === "categories" ? query : "";
-  const userQuery = activeTab === "users" ? query : "";
-  const orderQuery = activeTab === "orders" ? query : "";
-  const itemQuery = activeTab === "items" ? query : "";
-  const toolbarSearchPlaceholder = {
-    products: "Поиск по товарам текущей категории...",
-    categories: "Поиск по категориям...",
-    users: "Поиск по клиентам и email...",
-    orders: "Поиск по заказам и статусу...",
-    items: "Поиск по позициям заказа..."
-  }[activeTab] ?? "Поиск в текущем разделе...";
-  const visibleProducts = catalogProducts
-    .filter((product) => matchesQuery(product, productQuery))
-    .filter((product) => matchesPrice(product, priceFilter))
-    .sort((first, second) => Number(first.id) - Number(second.id));
-  const totalProductPages = Math.max(1, Math.ceil(visibleProducts.length / PRODUCTS_PER_PAGE));
+  const visibleProducts = catalogProducts;
+  const totalProductPages = Math.max(1, Number(catalogPage.totalPages) || 1);
   const currentProductPage = Math.min(productPage, totalProductPages);
   const productPageStart = (currentProductPage - 1) * PRODUCTS_PER_PAGE;
-  const paginatedProducts = visibleProducts.slice(productPageStart, productPageStart + PRODUCTS_PER_PAGE);
+  const paginatedProducts = visibleProducts;
   const productPageNumbers = Array.from({ length: totalProductPages }, (_, index) => index + 1);
-  const favoriteSet = new Set(favorites);
   const cartQuantity = cart.reduce((sum, item) => sum + item.quantity, 0);
   const cartTotal = cart.reduce((sum, item) => {
     const product = productById[item.productId];
@@ -143,7 +127,6 @@ function App() {
       }
     }))
     .filter((item) => item.product);
-  const heroProducts = (visibleProducts.length > 0 ? visibleProducts : products).slice(0, 4);
   const searchSuggestions = unique([
     ...products.map((product) => product.name),
     ...categories.map((category) => category.name),
@@ -181,6 +164,28 @@ function App() {
   }, [query, selectedCategoryId, priceFilter.min, priceFilter.max]);
 
   useEffect(() => {
+    if (activeTab !== "products") {
+      return;
+    }
+
+    if (productPage === 1) {
+      loadCatalog(1);
+    }
+  }, [activeTab, query, selectedCategoryId, priceFilter.min, priceFilter.max]);
+
+  useEffect(() => {
+    if (activeTab === "products" && productPage !== 1) {
+      loadCatalog(productPage);
+    }
+  }, [activeTab, productPage]);
+
+  useEffect(() => {
+    if (isAdmin && activeTab !== "products") {
+      loadAdminSection(activeTab);
+    }
+  }, [activeTab, query, isAdmin]);
+
+  useEffect(() => {
     setProductPage((current) => Math.min(current, totalProductPages));
   }, [totalProductPages]);
 
@@ -208,6 +213,35 @@ function App() {
     return () => document.removeEventListener("mousedown", handleOutsideClick);
   }, [isCartOpen, isUserMenuOpen]);
 
+  async function loadCatalog(pageNumber = productPage) {
+    setLoading(true);
+    setError("");
+
+    try {
+      const nextCatalogPage = await api.listCatalogProducts({
+        page: Math.max(0, pageNumber - 1),
+        size: PRODUCTS_PER_PAGE,
+        query: activeTab === "products" ? query.trim() : "",
+        categoryId: selectedCategoryId === "all" ? "" : selectedCategoryId,
+        minPrice: priceFilter.min,
+        maxPrice: priceFilter.max
+      });
+
+      setCatalogProducts(nextCatalogPage?.content ?? []);
+      setCatalogPage({
+        totalPages: nextCatalogPage?.totalPages ?? 1,
+        totalElements: nextCatalogPage?.totalElements ?? 0,
+        number: nextCatalogPage?.number ?? Math.max(0, pageNumber - 1)
+      });
+    } catch (requestError) {
+      setCatalogProducts([]);
+      setCatalogPage({ totalPages: 1, totalElements: 0, number: 0 });
+      setError(requestError.message);
+    } finally {
+      setLoading(false);
+    }
+  }
+
   async function loadData() {
     setLoading(true);
     setError("");
@@ -220,9 +254,14 @@ function App() {
         api.listOrders(),
         api.listItems()
       ]);
-      const nextCatalog = selectedCategoryId === "all"
-        ? nextProducts
-        : await api.listProductsByCategory(selectedCategoryId);
+      const nextCatalogPage = await api.listCatalogProducts({
+        page: Math.max(0, productPage - 1),
+        size: PRODUCTS_PER_PAGE,
+        query: activeTab === "products" ? query.trim() : "",
+        categoryId: selectedCategoryId === "all" ? "" : selectedCategoryId,
+        minPrice: priceFilter.min,
+        maxPrice: priceFilter.max
+      });
 
       setData({
         products: nextProducts,
@@ -232,7 +271,12 @@ function App() {
         items: nextItems
       });
       setSelectedUserId((current) => current || nextUsers[0]?.id || "");
-      setCatalogProducts(nextCatalog);
+      setCatalogProducts(nextCatalogPage?.content ?? []);
+      setCatalogPage({
+        totalPages: nextCatalogPage?.totalPages ?? 1,
+        totalElements: nextCatalogPage?.totalElements ?? 0,
+        number: nextCatalogPage?.number ?? Math.max(0, productPage - 1)
+      });
     } catch (requestError) {
       setError(requestError.message);
     } finally {
@@ -256,23 +300,54 @@ function App() {
     }
   }
 
-  async function selectCategory(categoryId) {
-    setProductPage(1);
-    setSelectedCategoryId(categoryId);
-    setActiveTab("products");
-    setLoading(true);
+  async function loadAdminSection(tabId) {
     setError("");
 
     try {
-      const nextProducts = categoryId === "all"
-        ? await api.listProducts()
-        : await api.listProductsByCategory(categoryId);
-      setCatalogProducts(nextProducts);
+      if (tabId === "categories") {
+        const nextCategories = await api.listCategories(query.trim());
+        setData((current) => ({ ...current, categories: nextCategories }));
+      }
+
+      if (tabId === "users") {
+        const nextUsers = await api.listUsers(query.trim());
+        setData((current) => ({ ...current, users: nextUsers }));
+      }
+
+      if (tabId === "orders") {
+        const nextOrders = await api.listOrders(query.trim());
+        setData((current) => ({ ...current, orders: nextOrders }));
+      }
+
+      if (tabId === "items") {
+        const nextItems = await api.listItems(query.trim());
+        setData((current) => ({ ...current, items: nextItems }));
+      }
     } catch (requestError) {
       setError(requestError.message);
-    } finally {
-      setLoading(false);
     }
+  }
+
+  async function openUserMenu() {
+    const shouldOpen = !isUserMenuOpen;
+    setIsUserMenuOpen(shouldOpen);
+
+    if (!shouldOpen) {
+      return;
+    }
+
+    try {
+      const nextUsers = await api.listUsers();
+      setData((current) => ({ ...current, users: nextUsers }));
+    } catch (requestError) {
+      setError(requestError.message);
+    }
+  }
+
+  function selectCategory(categoryId) {
+    setProductPage(1);
+    setSelectedCategoryId(categoryId);
+    setActiveTab("products");
   }
 
   async function run(action, successMessage, { reload = true } = {}) {
@@ -514,14 +589,6 @@ function App() {
     run(action, "Запись удалена");
   }
 
-  function toggleFavorite(productId) {
-    setFavorites((current) =>
-      current.includes(productId)
-        ? current.filter((id) => id !== productId)
-        : [...current, productId]
-    );
-  }
-
   function getCartDraft(productId) {
     return cartDrafts[productId] ?? 1;
   }
@@ -573,6 +640,7 @@ function App() {
       if (result) {
         setCart(normalizeCartItems(result));
         setActiveCartProductId(null);
+        setCartMode("compact");
         setIsCartOpen(true);
       }
     });
@@ -678,13 +746,14 @@ function App() {
     run(() => api.updateOrderStatus(orderId, status), "Статус заказа обновлён");
   }
 
-  function openCompactCart() {
-    setCartMode("compact");
-    setIsCartOpen((current) => cartMode === "compact" ? !current : true);
-  }
+  async function openCompactCart() {
+    if (cartMode === "compact" && isCartOpen) {
+      setIsCartOpen(false);
+      return;
+    }
 
-  function openFullCart() {
-    setCartMode("full");
+    setCartMode("compact");
+    await loadCartForUser(selectedUserId);
     setIsCartOpen(true);
   }
 
@@ -693,10 +762,10 @@ function App() {
     selectCategory("all");
   }
 
-  const filteredCategories = categories.filter((category) => matchesQuery(category, categoryQuery));
-  const filteredUsers = users.filter((user) => matchesQuery(user, userQuery));
-  const filteredOrders = orders.filter((order) => matchesQuery(order, orderQuery));
-  const filteredItems = items.filter((item) => matchesQuery(item, itemQuery));
+  const filteredCategories = categories;
+  const filteredUsers = users;
+  const filteredOrders = orders;
+  const filteredItems = items;
 
   return (
     <div className="app-shell">
@@ -707,7 +776,7 @@ function App() {
             <button
               className="user-icon-button"
               type="button"
-              onClick={() => setIsUserMenuOpen((current) => !current)}
+              onClick={openUserMenu}
               aria-label="Выбрать клиента"
             >
               <span className="user-avatar">👤</span>
@@ -759,7 +828,6 @@ function App() {
               </div>
             )}
           </div>
-          <button className="catalog-button" type="button" onClick={() => setActiveTab("products")}>Каталог</button>
           <label className="search-box">
             <span>Поиск</span>
             <input
@@ -788,74 +856,45 @@ function App() {
               </div>
             )}
           </label>
-          <button className="header-action" type="button">Избранное · {favorites.length}</button>
-          {isAdmin ? (
-            <button className="header-action strong" type="button" onClick={() => setActiveTab("products")}>
-              Админ-панель
-            </button>
-          ) : (
+          {activeTab === "products" && (
+            <>
+              <select
+                className="category-inline-select"
+                value={selectedCategoryId}
+                onChange={(event) => selectCategory(event.target.value)}
+                aria-label="Категории"
+              >
+                <option value="all">Категории</option>
+                {categories.map((category) => (
+                  <option key={category.id} value={category.id}>{category.name}</option>
+                ))}
+              </select>
+              <input
+                className="price-inline-input"
+                min="0"
+                step="0.01"
+                type="number"
+                placeholder="Цена от"
+                value={priceFilter.min}
+                onChange={(event) => setPriceFilterValue("min", event.target.value)}
+              />
+              <input
+                className="price-inline-input"
+                min="0"
+                step="0.01"
+                type="number"
+                placeholder="Цена до"
+                value={priceFilter.max}
+                onChange={(event) => setPriceFilterValue("max", event.target.value)}
+              />
+              <button className="ghost reset-inline-button" type="button" onClick={resetProductFilters}>Сбросить</button>
+            </>
+          )}
+          {!isAdmin && (
             <button className="header-action strong" type="button" onClick={openCompactCart}>
               Корзина · {cartQuantity}
             </button>
           )}
-        </div>
-
-        <div className="market-hero">
-          <div>
-            <p className="eyebrow">Astore Market</p>
-            <h1>Находи своё. Покупай проще.</h1>
-            <p>
-              Маркетплейс для повседневных находок: техника, книги, дом, уход, одежда и обувь в одном аккуратном каталоге.
-            </p>
-          </div>
-          <div className="cart-preview">
-            <span>{isAdmin ? "Режим" : "В корзине"}</span>
-            <strong>{isAdmin ? "Admin" : formatMoney(cartTotal)}</strong>
-            <small>
-              {isAdmin
-                ? "создание, изменение и удаление товаров"
-                : `${cartQuantity} шт. · клиент: ${selectedUser ? selectedUser.firstName : "не выбран"}`}
-            </small>
-          </div>
-        </div>
-
-        <div className="category-strip" aria-label="Фильтр по категориям">
-          <button
-            className={selectedCategoryId === "all" ? "category-pill active" : "category-pill"}
-            type="button"
-            onClick={() => selectCategory("all")}
-          >
-            Все товары
-          </button>
-          {categories.map((category) => (
-            <button
-              key={category.id}
-              className={String(selectedCategoryId) === String(category.id) ? "category-pill active" : "category-pill"}
-              type="button"
-              onClick={() => selectCategory(category.id)}
-            >
-              {category.name}
-            </button>
-          ))}
-        </div>
-
-        <div className="market-showcase">
-          <article className="promo-card main-promo">
-            <div>
-              <h2>{selectedCategory ? selectedCategory.name : "Популярное сегодня"}</h2>
-              {selectedCategory && <p>{selectedCategory.description}</p>}
-              <p className="promo-note">Скорее переходите к просмотру: ниже уже открыт каталог с товарами.</p>
-            </div>
-            <img src={productImage(heroProducts[0])} alt={heroProducts[0]?.name || "Товар"} />
-          </article>
-
-          {heroProducts.slice(1, 4).map((product) => (
-            <article className="promo-card mini-promo" key={product.id}>
-              <img src={productImage(product)} alt={product.name} />
-              <h3>{product.name}</h3>
-              <p>{formatMoney(product.price)}</p>
-            </article>
-          ))}
         </div>
       </header>
 
@@ -866,7 +905,10 @@ function App() {
               key={tab.id}
               className={activeTab === tab.id ? "tab active" : "tab"}
               type="button"
-              onClick={() => setActiveTab(tab.id)}
+              onClick={() => {
+                setActiveTab(tab.id);
+                loadAdminSection(tab.id);
+              }}
             >
               {tab.label}
             </button>
@@ -876,81 +918,22 @@ function App() {
 
       {error && <div className="status status-error">{error}</div>}
 
-      {isCartOpen && (
-        <section
-          className={cartMode === "compact" ? "cart-drawer cart-drawer-compact" : "cart-drawer"}
-          ref={cartRef}
-          aria-label="Корзина покупателя"
-        >
-          <div className="cart-drawer-head">
-            <div>
-              <p className="eyebrow">Корзина покупателя</p>
-              <h2>{selectedUser ? `${selectedUser.firstName} ${selectedUser.lastName}` : "Клиент не выбран"}</h2>
-            </div>
-          </div>
+      {isCartOpen && renderCartDrawer()}
 
-          {cartItems.length === 0 ? (
-            <div className="empty-state">Корзина этого покупателя пока пустая.</div>
-          ) : (
-            <>
-              <div className="cart-list">
-                {cartItems.map((item) => (
-                  <article className="cart-line" key={item.productId}>
-                    <img src={productImage(item.product)} alt={item.product.name} />
-                    <div>
-                      <strong>{item.product.name}</strong>
-                      <small>{formatMoney(item.product.price)} за шт.</small>
-                    </div>
-                    <input
-                      min="1"
-                      max={item.product.quantity ?? undefined}
-                      type="number"
-                      value={item.quantity}
-                      onChange={(event) => updateCartQuantity(item.productId, event.target.value)}
-                      aria-label={`Количество ${item.product.name}`}
-                    />
-                    <strong>{formatMoney(Number(item.product.price) * item.quantity)}</strong>
-                    <button className="danger link-button" type="button" onClick={() => removeFromCart(item.productId)}>
-                      Удалить
-                    </button>
-                  </article>
-                ))}
-              </div>
-              <div className="cart-total-row">
-                <span>{cartQuantity} шт.</span>
-                <strong>{formatMoney(cartTotal)}</strong>
-                <button className="ghost" type="button" onClick={clearCart}>Очистить</button>
-                <button className="pay-button" type="button" disabled={busy} onClick={checkoutCart}>Оплатить</button>
-              </div>
-            </>
-          )}
-        </section>
-      )}
-
-      <section className="workspace">
-        <aside className="panel form-panel">{renderForm()}</aside>
+      <section className={isAdmin ? "workspace" : "workspace buyer-workspace"}>
+        {isAdmin && <aside className="panel form-panel">{renderForm()}</aside>}
         <main className="panel content-panel">
           <div className="toolbar">
             <div>
-              <p className="eyebrow">Каталог API</p>
               <h2>{tabs.find((tab) => tab.id === activeTab)?.label}</h2>
               {activeTab === "products" && (
                 <p className="muted">
-                  {selectedCategory ? `Показана категория: ${selectedCategory.name}` : "Показаны все товары по порядку"}
+                  {catalogPage.totalElements === 0
+                    ? "Ничего не найдено"
+                    : `${selectedCategory ? selectedCategory.name : "Все товары"} · ${productPageStart + 1}-${Math.min(productPageStart + PRODUCTS_PER_PAGE, catalogPage.totalElements)} из ${catalogPage.totalElements}`}
                 </p>
               )}
             </div>
-            {isAdmin && (
-              <div className="toolbar-actions">
-                <input
-                  aria-label="Фильтр по данным"
-                  placeholder={toolbarSearchPlaceholder}
-                  value={query}
-                  onChange={(event) => setQuery(event.target.value)}
-                />
-                <button className="ghost" type="button" disabled={loading || busy} onClick={loadData}>Обновить</button>
-              </div>
-            )}
           </div>
 
           {loading ? <div className="empty-state">Загружаю данные из API...</div> : renderContent()}
@@ -959,28 +942,67 @@ function App() {
     </div>
   );
 
+  function renderCartDrawer() {
+    return (
+      <section
+        className={cartMode === "compact" ? "cart-drawer cart-drawer-compact" : "cart-drawer"}
+        ref={cartRef}
+        aria-label="Корзина покупателя"
+      >
+        <div className="cart-drawer-head">
+          <div>
+            <h2>{selectedUser ? `${selectedUser.firstName} ${selectedUser.lastName}` : "Клиент не выбран"}</h2>
+          </div>
+        </div>
+
+        {cartItems.length === 0 ? (
+          <div className="empty-state">Корзина этого покупателя пока пустая.</div>
+        ) : (
+          <>
+            <div className="cart-list">
+              {cartItems.map((item) => (
+                <article className="cart-line" key={item.productId}>
+                  <img src={productImage(item.product)} alt={item.product.name} />
+                  <div>
+                    <strong>{item.product.name}</strong>
+                    <small>{formatMoney(item.product.price)} за шт.</small>
+                  </div>
+                  <input
+                    min="1"
+                    max={item.product.quantity ?? undefined}
+                    type="number"
+                    value={item.quantity}
+                    onChange={(event) => updateCartQuantity(item.productId, event.target.value)}
+                    aria-label={`Количество ${item.product.name}`}
+                  />
+                  <strong>{formatMoney(Number(item.product.price) * item.quantity)}</strong>
+                  <button className="danger link-button" type="button" onClick={() => removeFromCart(item.productId)}>
+                    Удалить
+                  </button>
+                </article>
+              ))}
+            </div>
+            <div className="cart-total-row">
+              <span>{cartQuantity} шт.</span>
+              <strong>{formatMoney(cartTotal)}</strong>
+              <button className="ghost" type="button" onClick={clearCart}>Очистить</button>
+              <button className="pay-button" type="button" disabled={busy} onClick={checkoutCart}>Оплатить</button>
+            </div>
+          </>
+        )}
+      </section>
+    );
+  }
+
   function renderForm() {
     if (!isAdmin) {
-      return (
-        <div className="stack buyer-panel">
-          <PanelTitle
-            kicker="Режим покупателя"
-            title={selectedUser ? selectedUserLabel : "Выберите покупателя"}
-          />
-          <button className="header-action strong" type="button" onClick={openFullCart}>
-            Открыть корзину · {cartQuantity}
-          </button>
-        </div>
-      );
+      return null;
     }
 
     if (activeTab === "products") {
       return (
         <form className="stack" onSubmit={handleProductSubmit}>
-          <PanelTitle
-            kicker="Управление товаром"
-            title={editingProductId ? "Редактировать товар" : "Добавить товар"}
-          />
+          <PanelTitle title={editingProductId ? "Редактировать товар" : "Добавить товар"} />
           <label>Название<input required value={productForm.name} onChange={(event) => setProductForm({ ...productForm, name: event.target.value })} /></label>
           <label>Описание<textarea value={productForm.description} onChange={(event) => setProductForm({ ...productForm, description: event.target.value })} /></label>
           <div className="split">
@@ -1017,10 +1039,7 @@ function App() {
     if (activeTab === "categories") {
       return (
         <form className="stack" onSubmit={handleCategorySubmit}>
-          <PanelTitle
-            kicker="CRUD категорий"
-            title={editingCategoryId ? "Редактировать категорию" : "Создать категорию"}
-          />
+          <PanelTitle title={editingCategoryId ? "Редактировать категорию" : "Создать категорию"} />
           <label>Название<input required value={categoryForm.name} onChange={(event) => setCategoryForm({ ...categoryForm, name: event.target.value })} /></label>
           <label>Описание<textarea value={categoryForm.description} onChange={(event) => setCategoryForm({ ...categoryForm, description: event.target.value })} /></label>
           <FormActions
@@ -1035,7 +1054,7 @@ function App() {
     if (activeTab === "users") {
       return (
         <form className="stack" onSubmit={handleUserSubmit}>
-          <PanelTitle kicker="CRUD пользователей" title={editingUserId ? "Редактировать пользователя" : "Создать пользователя"} />
+          <PanelTitle title={editingUserId ? "Редактировать пользователя" : "Создать пользователя"} />
           <label>Email<input required type="email" value={userForm.email} onChange={(event) => setUserForm({ ...userForm, email: event.target.value })} /></label>
           <label>Имя<input required value={userForm.firstName} onChange={(event) => setUserForm({ ...userForm, firstName: event.target.value })} /></label>
           <label>Фамилия<input required value={userForm.lastName} onChange={(event) => setUserForm({ ...userForm, lastName: event.target.value })} /></label>
@@ -1051,7 +1070,7 @@ function App() {
     if (activeTab === "orders") {
       return (
         <form className="stack" onSubmit={handleOrderSubmit}>
-          <PanelTitle kicker="CRUD заказов" title="Создать заказ" />
+          <PanelTitle title="Создать заказ" />
           <label>
             Пользователь
             <select required value={orderDraft.userId} onChange={(event) => setOrderDraft({ ...orderDraft, userId: event.target.value })}>
@@ -1083,7 +1102,7 @@ function App() {
     if (activeTab === "items") {
       return (
         <form className="stack" onSubmit={handleItemSubmit}>
-          <PanelTitle kicker="CRUD позиций" title={editingItemId ? "Редактировать позицию" : "Добавить позицию"}  />
+          <PanelTitle title={editingItemId ? "Редактировать позицию" : "Добавить позицию"} />
           {!editingItemId && (
             <label>
               Заказ
@@ -1124,88 +1143,48 @@ function App() {
     if (activeTab === "products") {
       return (
         <div className="stack">
-          <div className="filter-card">
-            <div>
-              <strong>Выберите фильтр</strong>
-              <p>
-                {visibleProducts.length === 0
-                  ? "Ничего не найдено"
-                  : `${productPageStart + 1}-${Math.min(productPageStart + PRODUCTS_PER_PAGE, visibleProducts.length)} из ${visibleProducts.length}`}
-              </p>
-            </div>
-            <select value={selectedCategoryId} onChange={(event) => selectCategory(event.target.value)}>
-              <option value="all">Все категории</option>
-              {categories.map((category) => <option key={category.id} value={category.id}>{category.name}</option>)}
-            </select>
-            <div className="price-filter">
-              <input
-                min="0"
-                step="0.01"
-                type="number"
-                placeholder="Цена от"
-                value={priceFilter.min}
-                onChange={(event) => setPriceFilterValue("min", event.target.value)}
-              />
-              <input
-                min="0"
-                step="0.01"
-                type="number"
-                placeholder="Цена до"
-                value={priceFilter.max}
-                onChange={(event) => setPriceFilterValue("max", event.target.value)}
-              />
-            </div>
-            <button className="ghost" type="button" onClick={resetProductFilters}>Сбросить</button>
-          </div>
-
           <div className="product-grid">
             {paginatedProducts.map((product) => (
               <article className="market-card" key={product.id}>
-                <button
-                  className={favoriteSet.has(product.id) ? "favorite active" : "favorite"}
-                  type="button"
-                  onClick={() => toggleFavorite(product.id)}
-                  aria-label="Добавить в избранное"
-                >
-                  ♥
-                </button>
                 <figure>
                   <img src={productImage(product)} alt={product.name} />
                 </figure>
-                <div className="rating-row">
-                  <span>★ 4.{(Number(product.id) % 8) + 1}</span>
-                  <span>остаток: {product.quantity}</span>
-                </div>
-                <h3>{product.name}</h3>
-                <p>{product.description || "Описание не указано"}</p>
-                <div className="chips">
-                  {(product.categories ?? []).map((category) => <span className="chip" key={category}>{category}</span>)}
-                </div>
-                <div className="market-card-footer">
-                  <strong>{formatMoney(product.price)}</strong>
-                  {!isAdmin && (
-                    activeCartProductId === product.id ? (
-                      <div className="cart-add-controls expanded">
-                        <button type="button" onClick={() => setCartDraft(product.id, getCartDraft(product.id) - 1)}>-</button>
-                        <input
-                          min="1"
-                          max={product.quantity ?? undefined}
-                          type="number"
-                          value={getCartDraft(product.id)}
-                          onChange={(event) => setCartDraft(product.id, event.target.value)}
-                          aria-label={`Количество ${product.name}`}
-                        />
-                        <button type="button" onClick={() => setCartDraft(product.id, getCartDraft(product.id) + 1)}>+</button>
-                        <button className="add-cart-button" type="button" onClick={() => addToCart(product.id)}>
-                          Добавить {getCartDraft(product.id)} шт.
+                <div className="market-card-body">
+                  <div className="rating-row">
+                    <span>★ 4.{(Number(product.id) % 8) + 1}</span>
+                    <span>остаток: {product.quantity}</span>
+                  </div>
+                  <h3>{product.name}</h3>
+                  <p>{product.description || "Описание не указано"}</p>
+                  <div className="chips">
+                    {(product.categories ?? []).map((category) => <span className="chip" key={category}>{category}</span>)}
+                  </div>
+                  <div className="market-card-footer">
+                    <strong>{formatMoney(product.price)}</strong>
+                    {!isAdmin && (
+                      activeCartProductId === product.id ? (
+                        <div className="cart-add-controls expanded">
+                          <button type="button" onClick={() => setCartDraft(product.id, getCartDraft(product.id) - 1)}>-</button>
+                          <input
+                            min="1"
+                            max={product.quantity ?? undefined}
+                            type="number"
+                            value={getCartDraft(product.id)}
+                            onChange={(event) => setCartDraft(product.id, event.target.value)}
+                            aria-label={`Количество ${product.name}`}
+                          />
+                          <button type="button" onClick={() => setCartDraft(product.id, getCartDraft(product.id) + 1)}>+</button>
+                          <button className="add-cart-button" type="button" onClick={() => addToCart(product.id)}>
+                            Добавить {getCartDraft(product.id)} шт.
+                          </button>
+                        </div>
+                      ) : (
+                        <button className="add-cart-button" type="button" onClick={() => setActiveCartProductId(product.id)}>
+                          В корзину
                         </button>
-                      </div>
-                    ) : (
-                      <button className="add-cart-button" type="button" onClick={() => setActiveCartProductId(product.id)}>
-                        В корзину
-                      </button>
-                    )
-                  )}
+                      )
+                    )}
+                  </div>
                 </div>
                 {isAdmin && (
                   <div className="admin-row">
@@ -1216,7 +1195,7 @@ function App() {
               </article>
             ))}
           </div>
-          {visibleProducts.length === 0 ? (
+          {catalogPage.totalElements === 0 ? (
             <EmptyState />
           ) : (
             <div className="pagination-bar" aria-label="Пагинация товаров">
@@ -1313,7 +1292,6 @@ function App() {
               <article className="entity-card wide-card" key={order.id}>
                 <div className="order-head">
                   <div>
-                    <p className="eyebrow">Заказ покупателя</p>
                     <h3>{user ? `${user.firstName} ${user.lastName}` : "Покупатель удалён"}</h3>
                     <p>{formatDate(order.orderDate)}</p>
                   </div>
@@ -1367,10 +1345,9 @@ function App() {
   }
 }
 
-function PanelTitle({ kicker, title, text }) {
+function PanelTitle({ title, text }) {
   return (
     <div>
-      <p className="eyebrow">{kicker}</p>
       <h2>{title}</h2>
       {text && <p className="muted">{text}</p>}
     </div>
@@ -1409,30 +1386,6 @@ function normalizeCartItems(cartDto) {
       quantity: Number(item.quantity)
     }))
     .filter((item) => item.productId && Number.isInteger(item.quantity) && item.quantity > 0);
-}
-
-function matchesQuery(entity, query) {
-  if (!query.trim()) {
-    return true;
-  }
-
-  return JSON.stringify(entity).toLowerCase().includes(query.trim().toLowerCase());
-}
-
-function matchesPrice(product, priceFilter) {
-  const price = Number(product.price ?? 0);
-  const min = priceFilter.min === "" ? null : Math.max(0, Number(priceFilter.min));
-  const max = priceFilter.max === "" ? null : Math.max(0, Number(priceFilter.max));
-
-  if (min !== null && price < min) {
-    return false;
-  }
-
-  if (max !== null && price > max) {
-    return false;
-  }
-
-  return true;
 }
 
 function productImage(product) {

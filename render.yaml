@@ -1,0 +1,28 @@
+services:
+  - type: web
+    name: astore-backend
+    runtime: docker
+    plan: free
+    region: frankfurt
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    healthCheckPath: /actuator/health
+    autoDeployTrigger: off
+
+  - type: web
+    name: astore-frontend
+    runtime: docker
+    plan: free
+    region: frankfurt
+    dockerfilePath: ./frontend/Dockerfile
+    dockerContext: ./frontend
+    healthCheckPath: /health
+    autoDeployTrigger: off
+
+databases:
+  - name: astore-db
+    plan: free
+    region: frankfurt
+    databaseName: astore
+    user: astore
+    ipAllowList: []

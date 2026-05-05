@@ -15,8 +15,10 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.data.jpa.domain.Specification;
 
 
+import jakarta.persistence.criteria.JoinType;
 
 @Service
 @RequiredArgsConstructor
@@ -62,9 +64,31 @@ public class ItemService {
     }
 
     @Transactional(readOnly = true)
-    public Page<ItemDto> findAll(int page, int size) {
-        return itemRepository.findAll(PageRequest.of(page, size))
+    public Page<ItemDto> findAll(int page, int size, String query) {
+        if (query == null || query.isBlank()) {
+            return itemRepository.findAll(PageRequest.of(page, size))
+                    .map(itemMapper::toDto);
+        }
+
+        return itemRepository.findAll(buildSearchSpecification(query.trim()), PageRequest.of(page, size))
                 .map(itemMapper::toDto);
+    }
+
+    private Specification<Item> buildSearchSpecification(String query) {
+        return (root, criteriaQuery, criteriaBuilder) -> {
+            var productJoin = root.join("product", JoinType.LEFT);
+            var orderJoin = root.join("order", JoinType.LEFT);
+            var userJoin = orderJoin.join("user", JoinType.LEFT);
+            String likeQuery = "%" + query.toLowerCase() + "%";
+
+            return criteriaBuilder.or(
+                    criteriaBuilder.like(criteriaBuilder.lower(root.get("productName")), likeQuery),
+                    criteriaBuilder.like(criteriaBuilder.lower(productJoin.get("name")), likeQuery),
+                    criteriaBuilder.like(criteriaBuilder.lower(userJoin.get("email")), likeQuery),
+                    criteriaBuilder.like(criteriaBuilder.lower(userJoin.get("firstName")), likeQuery),
+                    criteriaBuilder.like(criteriaBuilder.lower(userJoin.get("lastName")), likeQuery)
+            );
+        };
     }
 
     @Transactional

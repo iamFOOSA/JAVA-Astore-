@@ -20,9 +20,13 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import jakarta.persistence.criteria.JoinType;
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -220,6 +224,58 @@ public class ProductService {
     public Page<ProductDto> findByCategory(Long categoryId, int page, int size) {
         return productRepository.findByCategoryId(categoryId, PageRequest.of(page, size))
                 .map(productMapper::toDto);
+    }
+
+    @Transactional(readOnly = true)
+    public Page<ProductDto> findCatalog(Long categoryId,
+                                        String query,
+                                        BigDecimal minPrice,
+                                        BigDecimal maxPrice,
+                                        int page,
+                                        int size) {
+        String normalizedQuery = query == null || query.isBlank() ? null : query.trim();
+        Specification<Product> specification = buildCatalogSpecification(
+                categoryId,
+                normalizedQuery,
+                minPrice,
+                maxPrice);
+
+        return productRepository.findAll(specification, PageRequest.of(page, size, Sort.by("id").ascending()))
+                .map(productMapper::toDto);
+    }
+
+    private Specification<Product> buildCatalogSpecification(Long categoryId,
+                                                             String query,
+                                                             BigDecimal minPrice,
+                                                             BigDecimal maxPrice) {
+        return (root, criteriaQuery, criteriaBuilder) -> {
+            var categoriesJoin = root.join("categories", JoinType.LEFT);
+            criteriaQuery.distinct(true);
+            List<jakarta.persistence.criteria.Predicate> predicates = new ArrayList<>();
+
+            if (categoryId != null) {
+                predicates.add(criteriaBuilder.equal(categoriesJoin.get("id"), categoryId));
+            }
+
+            if (query != null) {
+                String likeQuery = "%" + query.toLowerCase() + "%";
+                predicates.add(criteriaBuilder.or(
+                        criteriaBuilder.like(criteriaBuilder.lower(root.get("name")), likeQuery),
+                        criteriaBuilder.like(criteriaBuilder.lower(root.get("description")), likeQuery),
+                        criteriaBuilder.like(criteriaBuilder.lower(categoriesJoin.get("name")), likeQuery)
+                ));
+            }
+
+            if (minPrice != null) {
+                predicates.add(criteriaBuilder.greaterThanOrEqualTo(root.get("price"), minPrice));
+            }
+
+            if (maxPrice != null) {
+                predicates.add(criteriaBuilder.lessThanOrEqualTo(root.get("price"), maxPrice));
+            }
+
+            return criteriaBuilder.and(predicates.toArray(jakarta.persistence.criteria.Predicate[]::new));
+        };
     }
 
     @Transactional(readOnly = true)

@@ -40,8 +40,16 @@ public class CategoryService {
     }
 
     @Transactional(readOnly = true)
-    public Page<CategoryDto> findAll(int page, int size) {
-        return categoryRepository.findAll(PageRequest.of(page, size))
+    public Page<CategoryDto> findAll(int page, int size, String query) {
+        PageRequest pageRequest = PageRequest.of(page, size);
+        Page<Category> categories = query == null || query.isBlank()
+                ? categoryRepository.findAll(pageRequest)
+                : categoryRepository.findByNameContainingIgnoreCaseOrDescriptionContainingIgnoreCase(
+                        query.trim(),
+                        query.trim(),
+                        pageRequest);
+
+        return categories
                 .map(categoryMapper::toDto);
     }
 

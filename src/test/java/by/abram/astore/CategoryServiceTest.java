@@ -80,7 +80,7 @@ class CategoryServiceTest {
         when(categoryRepository.findAll(pageable)).thenReturn(page);
         when(categoryMapper.toDto(category)).thenReturn(dto);
 
-        Page<CategoryDto> result = categoryService.findAll(0, 10);
+        Page<CategoryDto> result = categoryService.findAll(0, 10, null);
 
         assertNotNull(result);
         assertEquals(1, result.getContent().size());

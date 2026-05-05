@@ -178,7 +178,7 @@ class ItemServiceTest {
     void findAll_Success() {
         PageRequest pageable = PageRequest.of(0, 10);
         when(itemRepository.findAll(pageable)).thenReturn(new PageImpl<>(List.of(new Item())));
-        Page<ItemDto> result = itemService.findAll(0, 10);
+        Page<ItemDto> result = itemService.findAll(0, 10, null);
         assertNotNull(result);
         verify(itemMapper).toDto(any());
     }

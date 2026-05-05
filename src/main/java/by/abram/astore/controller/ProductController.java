@@ -24,6 +24,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.math.BigDecimal;
 import java.util.Map;
 
 @RestController
@@ -89,6 +90,16 @@ public class ProductController {
     public ResponseEntity<Page<ProductDto>> findAll(@RequestParam(defaultValue = "0") int page,
                                                     @RequestParam(defaultValue = "10") int size) {
         return ResponseEntity.ok(productService.findAll(page, size));
+    }
+
+    @GetMapping("/catalog")
+    public ResponseEntity<Page<ProductDto>> findCatalog(@RequestParam(required = false) Long categoryId,
+                                                        @RequestParam(required = false) String query,
+                                                        @RequestParam(required = false) BigDecimal minPrice,
+                                                        @RequestParam(required = false) BigDecimal maxPrice,
+                                                        @RequestParam(defaultValue = "0") int page,
+                                                        @RequestParam(defaultValue = "12") int size) {
+        return ResponseEntity.ok(productService.findCatalog(categoryId, query, minPrice, maxPrice, page, size));
     }
 
     @GetMapping("/category/{categoryId}")

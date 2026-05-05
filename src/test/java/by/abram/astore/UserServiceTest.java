@@ -98,7 +98,7 @@ class UserServiceTest {
         when(userRepository.findAll(pageable)).thenReturn(page);
         when(userMapper.toDto(any())).thenReturn(new UserDto());
 
-        Page<UserDto> result = userService.findAll(0, 5);
+        Page<UserDto> result = userService.findAll(0, 5, null);
 
         assertEquals(1, result.getTotalElements());
     }

@@ -42,8 +42,9 @@ public class UserController {
     @Operation(summary = "Список пользователей", description = "Возвращает список всех клиентов")
     public ResponseEntity<Page<UserDto>> findAll(
             @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "10") int size) {
-        return ResponseEntity.ok(userService.findAll(page, size));
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(required = false) String query) {
+        return ResponseEntity.ok(userService.findAll(page, size, query));
     }
 
     @PutMapping("/{id}")

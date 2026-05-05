@@ -147,7 +147,7 @@ class OrderServiceTest {
     void findAll_Success() {
         PageRequest pageable = PageRequest.of(0, 10);
         when(orderRepository.findAll(pageable)).thenReturn(new PageImpl<>(List.of(new Order())));
-        Page<OrderDto> result = orderService.findAll(0, 10);
+        Page<OrderDto> result = orderService.findAll(0, 10, null);
         assertNotNull(result);
     }
 
