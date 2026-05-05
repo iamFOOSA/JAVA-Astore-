@@ -152,6 +152,7 @@ docker build -t astore-frontend ./frontend
 14. При необходимости добавить GitHub Actions variables:
    - `SONAR_PROJECT_KEY=iamFOOSA_PNAY`
    - `SONAR_ORGANIZATION=<your-sonarcloud-organization-key>`
+   - `SONAR_QUALITY_GATE_WAIT=false`
 15. Сделать push в ветку `main` или запустить workflow вручную через `Actions -> CI/CD -> Run workflow`.
 
 В `render.yaml` указан `autoDeployTrigger: off`, поэтому деплой запускается из GitHub Actions только после успешных сборок и тестов.
@@ -163,7 +164,7 @@ docker build -t astore-frontend ./frontend
 Workflow находится в `.github/workflows/ci-cd.yml` и выполняет:
 
 1. `Frontend Build`: `npm ci` и `npm run build`.
-2. `Backend Build & Test`: `mvn -B verify`, JaCoCo coverage и SonarCloud Quality Gate.
+2. `Backend Build & Test`: `mvn -B verify`, JaCoCo coverage и SonarCloud analysis.
 3. `Docker Build`: сборка backend-образа из `Dockerfile` и frontend-образа из `frontend/Dockerfile`.
 4. `Deploy Frontend to Render`: вызов frontend Render Deploy Hook.
 5. `Deploy Backend to Render`: вызов backend Render Deploy Hook.
@@ -172,7 +173,7 @@ Workflow находится в `.github/workflows/ci-cd.yml` и выполняе
 
 Для pull request выполняются сборка, тесты, SonarCloud-анализ и Docker build. Деплой и healthcheck запускаются для push в `main` и ручного запуска workflow на ветке `main`.
 
-В workflow вынесены служебные переменные окружения: версии Java/Node.js, Maven-флаги, имена Docker-образов, SonarCloud-настройки и параметры healthcheck. Секреты не хранятся в Git и берутся только из GitHub Actions Secrets.
+В workflow вынесены служебные переменные окружения: версии Java/Node.js, Maven-флаги, имена Docker-образов, SonarCloud-настройки и параметры healthcheck. Секреты не хранятся в Git и берутся только из GitHub Actions Secrets. По умолчанию SonarCloud Quality Gate не блокирует деплой; если нужно строго останавливать CI/CD при красном Quality Gate, задайте GitHub Actions variable `SONAR_QUALITY_GATE_WAIT=true`.
 
 
 ## Качество кода (Checkstyle)

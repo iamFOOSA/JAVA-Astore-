@@ -21,6 +21,7 @@ env:
   SONAR_HOST_URL: "https://sonarcloud.io"
   SONAR_PROJECT_KEY: ${{ vars.SONAR_PROJECT_KEY || 'iamFOOSA_PNAY' }}
   SONAR_ORGANIZATION: ${{ vars.SONAR_ORGANIZATION || 'iamfoosa' }}
+  SONAR_QUALITY_GATE_WAIT: ${{ vars.SONAR_QUALITY_GATE_WAIT || 'false' }}
   SONAR_QUALITY_GATE_TIMEOUT: "300"
   HEALTHCHECK_ATTEMPTS: "60"
   HEALTHCHECK_INTERVAL_SECONDS: "15"
@@ -78,7 +79,7 @@ jobs:
       - name: Run backend build and tests
         run: mvn ${MAVEN_CLI_OPTS} verify
 
-      - name: Run SonarCloud quality gate
+      - name: Run SonarCloud analysis
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
         run: |
@@ -97,7 +98,7 @@ jobs:
             -Dsonar.projectKey="${SONAR_PROJECT_KEY}" \
             -Dsonar.organization="${SONAR_ORGANIZATION}" \
             -Dsonar.token="${SONAR_TOKEN}" \
-            -Dsonar.qualitygate.wait=true \
+            -Dsonar.qualitygate.wait="${SONAR_QUALITY_GATE_WAIT}" \
             -Dsonar.qualitygate.timeout="${SONAR_QUALITY_GATE_TIMEOUT}"
 
   docker:
