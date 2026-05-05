@@ -94,8 +94,9 @@ class ItemServiceTest {
 
     @Test
     void create_OrderNotFound() {
+        ItemDto dto = new ItemDto();
         when(orderRepository.findById(1L)).thenReturn(Optional.empty());
-        assertThrows(EntityNotFoundException.class, () -> itemService.create(1L, new ItemDto()));
+        assertThrows(EntityNotFoundException.class, () -> itemService.create(1L, dto));
     }
 
     @Test
@@ -205,8 +206,9 @@ class ItemServiceTest {
 
     @Test
     void update_NotFound() {
+        ItemDto dto = new ItemDto();
         when(itemRepository.findById(1L)).thenReturn(Optional.empty());
-        assertThrows(EntityNotFoundException.class, () -> itemService.update(1L, new ItemDto()));
+        assertThrows(EntityNotFoundException.class, () -> itemService.update(1L, dto));
     }
 
     @Test

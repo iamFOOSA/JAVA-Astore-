@@ -308,7 +308,7 @@ public class ProductService {
             Product saved = productRepository.save(product);
 
             if (simulateError && count == dtos.size()) {
-                throw new RuntimeException("Симуляция сбоя");
+                throw new BusinessLogicException("Симуляция сбоя");
             }
 
             savedDtos.add(productMapper.toDto(saved));
@@ -366,7 +366,7 @@ public class ProductService {
                 productsSaved = true;
 
                 if (simulateError && count == dtos.size()) {
-                    throw new RuntimeException("Симуляция сбоя без транзакции");
+                    throw new BusinessLogicException("Симуляция сбоя без транзакции");
                 }
 
                 savedDtos.add(productMapper.toDto(saved));

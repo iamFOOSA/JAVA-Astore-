@@ -9,9 +9,6 @@ on:
       - main
   workflow_dispatch:
 
-permissions:
-  contents: read
-
 env:
   JAVA_VERSION: "21"
   NODE_VERSION: "22"
@@ -19,7 +16,7 @@ env:
   BACKEND_IMAGE_NAME: "astore-backend"
   FRONTEND_IMAGE_NAME: "astore-frontend"
   SONAR_HOST_URL: "https://sonarcloud.io"
-  SONAR_PROJECT_KEY: ${{ vars.SONAR_PROJECT_KEY || 'iamFOOSA_PNAY' }}
+  SONAR_PROJECT_KEY: ${{ vars.SONAR_PROJECT_KEY || 'iamFOOSA_JAVA-Astore-' }}
   SONAR_ORGANIZATION: ${{ vars.SONAR_ORGANIZATION || 'iamfoosa' }}
   SONAR_QUALITY_GATE_WAIT: ${{ vars.SONAR_QUALITY_GATE_WAIT || 'false' }}
   SONAR_QUALITY_GATE_TIMEOUT: "300"
@@ -30,6 +27,8 @@ jobs:
   frontend:
     name: Frontend Build
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
 
     defaults:
       run:
@@ -47,7 +46,7 @@ jobs:
           cache-dependency-path: frontend/package-lock.json
 
       - name: Install frontend dependencies
-        run: npm ci
+        run: npm ci --ignore-scripts
 
       - name: Build frontend
         run: npm run build
@@ -55,6 +54,8 @@ jobs:
   backend:
     name: Backend Build & Test
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
 
     steps:
       - name: Checkout
@@ -104,6 +105,8 @@ jobs:
   docker:
     name: Docker Build
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     needs:
       - backend
       - frontend
@@ -132,6 +135,7 @@ jobs:
   deploy-frontend:
     name: Deploy Frontend to Render
     runs-on: ubuntu-latest
+    permissions: {}
     needs: docker
     if: github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
 
@@ -150,6 +154,7 @@ jobs:
   deploy-backend:
     name: Deploy Backend to Render
     runs-on: ubuntu-latest
+    permissions: {}
     needs: docker
     if: github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
 
@@ -168,6 +173,7 @@ jobs:
   frontend-healthcheck:
     name: Frontend Healthcheck
     runs-on: ubuntu-latest
+    permissions: {}
     needs: deploy-frontend
     if: github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
     timeout-minutes: 15
@@ -199,6 +205,7 @@ jobs:
   backend-healthcheck:
     name: Backend Healthcheck
     runs-on: ubuntu-latest
+    permissions: {}
     needs:
       - deploy-backend
       - frontend-healthcheck

@@ -34,6 +34,17 @@ import java.util.Map;
 public class DemoDataSeeder implements CommandLineRunner {
 
     private static final String DEMO_PASSWORD = "demo-password";
+    private static final String USER_MARTA = "marta";
+    private static final String USER_ALEX = "alex";
+    private static final String USER_SOFIA = "sofia";
+    private static final String USER_IVAN = "ivan";
+    private static final String USER_NIKA = "nika";
+    private static final String CATEGORY_ELECTRONICS = "electronics";
+    private static final String CATEGORY_BOOKS = "books";
+    private static final String CATEGORY_HOME = "home";
+    private static final String CATEGORY_BATH = "bath";
+    private static final String CATEGORY_CLOTHES = "clothes";
+    private static final String CATEGORY_SHOES = "shoes";
 
     private final UserRepository userRepository;
     private final CategoryRepository categoryRepository;
@@ -52,41 +63,41 @@ public class DemoDataSeeder implements CommandLineRunner {
         Map<String, Product> products = createProducts(categories);
         Map<String, User> users = createUsers();
 
-        createOrder(users.get("marta"), Status.DELIVERED, 18, List.of(
+        createOrder(users.get(USER_MARTA), Status.DELIVERED, 18, List.of(
                 orderItem(products.get("phone"), 1),
                 orderItem(products.get("book"), 1),
                 orderItem(products.get("faceWash"), 2)
         ));
-        createOrder(users.get("alex"), Status.PROCESSING, 4, List.of(
+        createOrder(users.get(USER_ALEX), Status.PROCESSING, 4, List.of(
                 orderItem(products.get("lamp"), 1),
                 orderItem(products.get("hoodie"), 1),
                 orderItem(products.get("sneakers"), 1)
         ));
-        createOrder(users.get("sofia"), Status.SHIPPED, 9, List.of(
+        createOrder(users.get(USER_SOFIA), Status.SHIPPED, 9, List.of(
                 orderItem(products.get("headphones"), 1),
                 orderItem(products.get("towels"), 1),
                 orderItem(products.get("plaid"), 1)
         ));
-        createOrder(users.get("ivan"), Status.NEW, 1, List.of(
+        createOrder(users.get(USER_IVAN), Status.NEW, 1, List.of(
                 orderItem(products.get("tablet"), 1),
                 orderItem(products.get("storageBoxes"), 2),
                 orderItem(products.get("shampoo"), 1)
         ));
-        createOrder(users.get("nika"), Status.DELIVERED, 27, List.of(
+        createOrder(users.get(USER_NIKA), Status.DELIVERED, 27, List.of(
                 orderItem(products.get("cookbook"), 1),
                 orderItem(products.get("shirt"), 1),
                 orderItem(products.get("loafers"), 1)
         ));
 
-        createCart(users.get("marta"), List.of(
+        createCart(users.get(USER_MARTA), List.of(
                 cartItem(products.get("diffuser"), 1),
                 cartItem(products.get("cream"), 2)
         ));
-        createCart(users.get("alex"), List.of(
+        createCart(users.get(USER_ALEX), List.of(
                 cartItem(products.get("powerbank"), 1),
                 cartItem(products.get("jeans"), 1)
         ));
-        createCart(users.get("sofia"), List.of(
+        createCart(users.get(USER_SOFIA), List.of(
                 cartItem(products.get("sandals"), 1),
                 cartItem(products.get("codeBook"), 1)
         ));
@@ -120,12 +131,12 @@ public class DemoDataSeeder implements CommandLineRunner {
         categoryRepository.saveAll(List.of(electronics, books, home, bath, clothes, shoes));
 
         return Map.of(
-                "electronics", electronics,
-                "books", books,
-                "home", home,
-                "bath", bath,
-                "clothes", clothes,
-                "shoes", shoes
+                CATEGORY_ELECTRONICS, electronics,
+                CATEGORY_BOOKS, books,
+                CATEGORY_HOME, home,
+                CATEGORY_BATH, bath,
+                CATEGORY_CLOTHES, clothes,
+                CATEGORY_SHOES, shoes
         );
     }
 
@@ -136,7 +147,7 @@ public class DemoDataSeeder implements CommandLineRunner {
                 "1599.00",
                 24,
                 "/product-images/smartphone.svg",
-                List.of(categories.get("electronics"))
+                List.of(categories.get(CATEGORY_ELECTRONICS))
         );
         Product headphones = product(
                 "Наушники WavePods Lite",
@@ -144,7 +155,7 @@ public class DemoDataSeeder implements CommandLineRunner {
                 "249.00",
                 38,
                 "/product-images/headphones.svg",
-                List.of(categories.get("electronics"))
+                List.of(categories.get(CATEGORY_ELECTRONICS))
         );
         Product speaker = product(
                 "Умная колонка Home Beat",
@@ -152,7 +163,7 @@ public class DemoDataSeeder implements CommandLineRunner {
                 "329.00",
                 19,
                 "/product-images/smart-speaker.svg",
-                List.of(categories.get("electronics"), categories.get("home"))
+                List.of(categories.get(CATEGORY_ELECTRONICS), categories.get(CATEGORY_HOME))
         );
         Product book = product(
                 "Книга «Java без паники»",
@@ -160,7 +171,7 @@ public class DemoDataSeeder implements CommandLineRunner {
                 "64.90",
                 42,
                 "/product-images/book-java.svg",
-                List.of(categories.get("books"))
+                List.of(categories.get(CATEGORY_BOOKS))
         );
         Product planner = product(
                 "Планер «Спокойная неделя»",
@@ -168,7 +179,7 @@ public class DemoDataSeeder implements CommandLineRunner {
                 "39.90",
                 55,
                 "/product-images/planner-book.svg",
-                List.of(categories.get("books"))
+                List.of(categories.get(CATEGORY_BOOKS))
         );
         Product lamp = product(
                 "Настольная лампа Nordic",
@@ -176,7 +187,7 @@ public class DemoDataSeeder implements CommandLineRunner {
                 "129.00",
                 21,
                 "/product-images/desk-lamp.svg",
-                List.of(categories.get("home"))
+                List.of(categories.get(CATEGORY_HOME))
         );
         Product plaid = product(
                 "Плед Cloud Soft",
@@ -184,7 +195,7 @@ public class DemoDataSeeder implements CommandLineRunner {
                 "89.00",
                 30,
                 "/product-images/plaid.svg",
-                List.of(categories.get("home"), categories.get("clothes"))
+                List.of(categories.get(CATEGORY_HOME), categories.get(CATEGORY_CLOTHES))
         );
         Product organizer = product(
                 "Органайзер для ванной Clear Box",
@@ -192,7 +203,7 @@ public class DemoDataSeeder implements CommandLineRunner {
                 "34.50",
                 64,
                 "/product-images/bath-organizer.svg",
-                List.of(categories.get("bath"), categories.get("home"))
+                List.of(categories.get(CATEGORY_BATH), categories.get(CATEGORY_HOME))
         );
         Product towels = product(
                 "Набор полотенец Spa Cotton",
@@ -200,7 +211,7 @@ public class DemoDataSeeder implements CommandLineRunner {
                 "74.00",
                 36,
                 "/product-images/towels.svg",
-                List.of(categories.get("bath"))
+                List.of(categories.get(CATEGORY_BATH))
         );
         Product faceWash = product(
                 "Гель для умывания Fresh Foam",
@@ -208,7 +219,7 @@ public class DemoDataSeeder implements CommandLineRunner {
                 "27.90",
                 80,
                 "/product-images/face-wash.svg",
-                List.of(categories.get("bath"))
+                List.of(categories.get(CATEGORY_BATH))
         );
         Product hoodie = product(
                 "Худи Daily Oversize",
@@ -216,7 +227,7 @@ public class DemoDataSeeder implements CommandLineRunner {
                 "119.00",
                 26,
                 "/product-images/hoodie.svg",
-                List.of(categories.get("clothes"))
+                List.of(categories.get(CATEGORY_CLOTHES))
         );
         Product tshirt = product(
                 "Футболка Base Cotton",
@@ -224,7 +235,7 @@ public class DemoDataSeeder implements CommandLineRunner {
                 "49.00",
                 74,
                 "/product-images/tshirt.svg",
-                List.of(categories.get("clothes"))
+                List.of(categories.get(CATEGORY_CLOTHES))
         );
         Product sneakers = product(
                 "Кроссовки Urban Run",
@@ -232,7 +243,7 @@ public class DemoDataSeeder implements CommandLineRunner {
                 "179.00",
                 31,
                 "/product-images/sneakers.svg",
-                List.of(categories.get("shoes"))
+                List.of(categories.get(CATEGORY_SHOES))
         );
         Product boots = product(
                 "Ботинки Trail Soft",
@@ -240,7 +251,7 @@ public class DemoDataSeeder implements CommandLineRunner {
                 "229.00",
                 18,
                 "/product-images/boots.svg",
-                List.of(categories.get("shoes"))
+                List.of(categories.get(CATEGORY_SHOES))
         );
         Product tablet = product(
                 "Планшет Canvas Tab",
@@ -248,7 +259,7 @@ public class DemoDataSeeder implements CommandLineRunner {
                 "899.00",
                 17,
                 "/product-images/tablet.svg",
-                List.of(categories.get("electronics"))
+                List.of(categories.get(CATEGORY_ELECTRONICS))
         );
         Product powerbank = product(
                 "Пауэрбанк Volt Mini",
@@ -256,7 +267,7 @@ public class DemoDataSeeder implements CommandLineRunner {
                 "79.00",
                 46,
                 "/product-images/powerbank.svg",
-                List.of(categories.get("electronics"))
+                List.of(categories.get(CATEGORY_ELECTRONICS))
         );
         Product cookbook = product(
                 "Книга «Ужин без суеты»",
@@ -264,7 +275,7 @@ public class DemoDataSeeder implements CommandLineRunner {
                 "58.00",
                 34,
                 "/product-images/cookbook.svg",
-                List.of(categories.get("books"), categories.get("home"))
+                List.of(categories.get(CATEGORY_BOOKS), categories.get(CATEGORY_HOME))
         );
         Product codeBook = product(
                 "Книга «Чистый код рядом»",
@@ -272,7 +283,7 @@ public class DemoDataSeeder implements CommandLineRunner {
                 "72.00",
                 28,
                 "/product-images/code-book.svg",
-                List.of(categories.get("books"))
+                List.of(categories.get(CATEGORY_BOOKS))
         );
         Product diffuser = product(
                 "Аромадиффузор Calm Reed",
@@ -280,7 +291,7 @@ public class DemoDataSeeder implements CommandLineRunner {
                 "52.00",
                 39,
                 "/product-images/diffuser.svg",
-                List.of(categories.get("home"), categories.get("bath"))
+                List.of(categories.get(CATEGORY_HOME), categories.get(CATEGORY_BATH))
         );
         Product storageBoxes = product(
                 "Контейнеры для хранения SetBox",
@@ -288,7 +299,7 @@ public class DemoDataSeeder implements CommandLineRunner {
                 "69.00",
                 44,
                 "/product-images/storage-box.svg",
-                List.of(categories.get("home"))
+                List.of(categories.get(CATEGORY_HOME))
         );
         Product shampoo = product(
                 "Шампунь Soft Balance",
@@ -296,7 +307,7 @@ public class DemoDataSeeder implements CommandLineRunner {
                 "31.50",
                 72,
                 "/product-images/shampoo.svg",
-                List.of(categories.get("bath"))
+                List.of(categories.get(CATEGORY_BATH))
         );
         Product cream = product(
                 "Крем для рук Velvet Care",
@@ -304,7 +315,7 @@ public class DemoDataSeeder implements CommandLineRunner {
                 "24.90",
                 88,
                 "/product-images/cream.svg",
-                List.of(categories.get("bath"))
+                List.of(categories.get(CATEGORY_BATH))
         );
         Product shirt = product(
                 "Рубашка Linen Breeze",
@@ -312,7 +323,7 @@ public class DemoDataSeeder implements CommandLineRunner {
                 "98.00",
                 29,
                 "/product-images/shirt.svg",
-                List.of(categories.get("clothes"))
+                List.of(categories.get(CATEGORY_CLOTHES))
         );
         Product jeans = product(
                 "Джинсы Straight Denim",
@@ -320,7 +331,7 @@ public class DemoDataSeeder implements CommandLineRunner {
                 "139.00",
                 23,
                 "/product-images/jeans.svg",
-                List.of(categories.get("clothes"))
+                List.of(categories.get(CATEGORY_CLOTHES))
         );
         Product loafers = product(
                 "Лоферы City Walk",
@@ -328,7 +339,7 @@ public class DemoDataSeeder implements CommandLineRunner {
                 "189.00",
                 20,
                 "/product-images/loafers.svg",
-                List.of(categories.get("shoes"))
+                List.of(categories.get(CATEGORY_SHOES))
         );
         Product sandals = product(
                 "Сандалии Coast Day",
@@ -336,7 +347,7 @@ public class DemoDataSeeder implements CommandLineRunner {
                 "115.00",
                 33,
                 "/product-images/sandals.svg",
-                List.of(categories.get("shoes"))
+                List.of(categories.get(CATEGORY_SHOES))
         );
 
         productRepository.saveAll(List.of(
@@ -407,7 +418,13 @@ public class DemoDataSeeder implements CommandLineRunner {
 
         userRepository.saveAll(List.of(marta, alex, sofia, ivan, nika));
 
-        return Map.of("marta", marta, "alex", alex, "sofia", sofia, "ivan", ivan, "nika", nika);
+        return Map.of(
+                USER_MARTA, marta,
+                USER_ALEX, alex,
+                USER_SOFIA, sofia,
+                USER_IVAN, ivan,
+                USER_NIKA, nika
+        );
     }
 
     private Category category(String name, String description) {

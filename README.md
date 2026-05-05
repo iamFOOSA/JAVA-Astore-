@@ -150,8 +150,8 @@ docker build -t astore-frontend ./frontend
 12. Добавить секрет `FRONTEND_HEALTH_URL=https://<frontend-service>.onrender.com/health`.
 13. Добавить секрет `SONAR_TOKEN` из SonarCloud.
 14. При необходимости добавить GitHub Actions variables:
-   - `SONAR_PROJECT_KEY=iamFOOSA_PNAY`
-   - `SONAR_ORGANIZATION=<your-sonarcloud-organization-key>`
+   - `SONAR_PROJECT_KEY=iamFOOSA_JAVA-Astore-`
+   - `SONAR_ORGANIZATION=iamfoosa`
    - `SONAR_QUALITY_GATE_WAIT=false`
 15. Сделать push в ветку `main` или запустить workflow вручную через `Actions -> CI/CD -> Run workflow`.
 

@@ -10,6 +10,7 @@ import by.abram.astore.dto.RaceConditionResponse;
 import by.abram.astore.entity.Category;
 import by.abram.astore.entity.Item;
 import by.abram.astore.entity.Product;
+import by.abram.astore.exception.BusinessLogicException;
 import by.abram.astore.exception.ResourceNotFoundException;
 import by.abram.astore.mapper.ProductMapper;
 import by.abram.astore.repository.CategoryRepository;
@@ -38,6 +39,7 @@ import java.util.concurrent.CompletableFuture;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
@@ -108,7 +110,7 @@ class ProductServiceTest {
         assertNotNull(status);
         assertEquals(response.taskId(), status.taskId());
         assertEquals("CREATED", status.status());
-        assertEquals(null, status.reportSummary());
+        assertNull(status.reportSummary());
     }
 
     @Test
@@ -323,8 +325,8 @@ class ProductServiceTest {
 
         productService.delete(1L);
 
-        assertEquals(null, item1.getProduct());
-        assertEquals(null, item2.getProduct());
+        assertNull(item1.getProduct());
+        assertNull(item2.getProduct());
         verify(itemRepository).saveAll(items);
         verify(cartItemRepository).deleteByProductId(1L);
         verify(productRepository).deleteById(1L);
@@ -417,7 +419,7 @@ class ProductServiceTest {
 
         when(productMapper.toEntity(any())).thenReturn(new Product());
 
-        assertThrows(RuntimeException.class, () ->
+        assertThrows(BusinessLogicException.class, () ->
                 productService.bulkImportWithTransaction(dtos, true)
         );
     }
