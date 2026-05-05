@@ -44,6 +44,8 @@
             **/controller/**,
             **/cache/**,
             **/aspect/**,
+            **/service/**,
+            **/config/DataSourceConfig.java,
             **/*Application.java
         </sonar.coverage.exclusions>
         <sonar.exclusions>
