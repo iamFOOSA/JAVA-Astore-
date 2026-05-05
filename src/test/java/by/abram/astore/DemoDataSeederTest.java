@@ -2,7 +2,6 @@ package by.abram.astore;
 
 import by.abram.astore.config.DemoDataSeeder;
 import by.abram.astore.entity.Cart;
-import by.abram.astore.entity.CartItem;
 import by.abram.astore.entity.Category;
 import by.abram.astore.entity.Order;
 import by.abram.astore.entity.Product;
@@ -25,8 +24,6 @@ import java.util.ArrayList;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -57,9 +54,69 @@ class DemoDataSeederTest {
     private CartItemRepository cartItemRepository;
 
     @Test
-    void run_ShouldClearDatabaseAndSeedDemoCatalog() {
-        Product staleProduct = new Product();
-        staleProduct.getCategories().add(new Category());
+    void run_ShouldClearDatabaseBeforeSeeding() {
+        Product staleProduct = staleProduct();
+
+        seedDemoCatalog(staleProduct);
+
+        verify(cartItemRepository).deleteAllInBatch();
+        verify(cartRepository).deleteAllInBatch();
+        verify(itemRepository).deleteAllInBatch();
+        verify(orderRepository).deleteAllInBatch();
+        verify(categoryRepository).deleteAllInBatch();
+        verify(userRepository).deleteAllInBatch();
+        assertTrue(staleProduct.getCategories().isEmpty());
+    }
+
+    @Test
+    void run_ShouldSeedCategoriesProductsAndUsers() {
+        SeededDemoCatalog catalog = seedDemoCatalog(staleProduct());
+
+        assertEquals(6, catalog.categories().size());
+        assertTrue(catalog.categories().stream().map(Category::getName).toList().containsAll(List.of(
+                "Электроника",
+                "Книги",
+                "Товары для дома",
+                "Товары для ванной и умывания",
+                "Одежда",
+                "Обувь"
+        )));
+
+        assertEquals(26, catalog.products().size());
+        assertTrue(catalog.products().stream().allMatch(
+                product -> product.getPrice().compareTo(BigDecimal.ZERO) > 0));
+        assertTrue(catalog.products().stream().allMatch(product -> !product.getCategories().isEmpty()));
+        assertTrue(catalog.products().stream().map(Product::getName).toList().containsAll(List.of(
+                "Смартфон Aurora X",
+                "Книга «Java без паники»",
+                "Кроссовки Urban Run"
+        )));
+
+        assertEquals(5, catalog.users().size());
+        assertTrue(catalog.users().stream().allMatch(user -> "demo-password".equals(user.getPassword())));
+        assertTrue(catalog.users().stream().map(User::getEmail).toList().containsAll(List.of(
+                "marta.sokolova@astore.local",
+                "sofia.romanova@astore.local"
+        )));
+    }
+
+    @Test
+    void run_ShouldCreateOrdersWithItems() {
+        SeededDemoCatalog catalog = seedDemoCatalog(staleProduct());
+
+        assertEquals(5, catalog.orders().size());
+        assertTrue(catalog.orders().stream().allMatch(this::isValidSeededOrder));
+    }
+
+    @Test
+    void run_ShouldCreateCartsWithItems() {
+        SeededDemoCatalog catalog = seedDemoCatalog(staleProduct());
+
+        assertEquals(3, catalog.carts().size());
+        assertTrue(catalog.carts().stream().allMatch(this::isValidSeededCart));
+    }
+
+    private SeededDemoCatalog seedDemoCatalog(Product staleProduct) {
         when(productRepository.findAll()).thenReturn(List.of(staleProduct));
 
         new DemoDataSeeder(
@@ -72,81 +129,69 @@ class DemoDataSeederTest {
                 cartItemRepository
         ).run();
 
-        verify(cartItemRepository).deleteAllInBatch();
-        verify(cartRepository).deleteAllInBatch();
-        verify(itemRepository).deleteAllInBatch();
-        verify(orderRepository).deleteAllInBatch();
-        verify(categoryRepository).deleteAllInBatch();
-        verify(userRepository).deleteAllInBatch();
-        assertTrue(staleProduct.getCategories().isEmpty());
+        return new SeededDemoCatalog(
+                capturedCategories(),
+                capturedProducts(),
+                capturedUsers(),
+                capturedOrders(),
+                capturedCarts()
+        );
+    }
 
+    private Product staleProduct() {
+        Product product = new Product();
+        product.getCategories().add(new Category());
+        return product;
+    }
+
+    private List<Category> capturedCategories() {
         ArgumentCaptor<Iterable<Category>> categoryCaptor = iterableCaptor();
         verify(categoryRepository).saveAll(categoryCaptor.capture());
-        List<Category> categories = toList(categoryCaptor.getValue());
+        return toList(categoryCaptor.getValue());
+    }
 
-        assertEquals(6, categories.size());
-        assertTrue(categories.stream().map(Category::getName).toList().containsAll(List.of(
-                "Электроника",
-                "Книги",
-                "Товары для дома",
-                "Товары для ванной и умывания",
-                "Одежда",
-                "Обувь"
-        )));
-
+    private List<Product> capturedProducts() {
         ArgumentCaptor<Iterable<Product>> productCaptor = iterableCaptor();
         verify(productRepository, times(2)).saveAll(productCaptor.capture());
-        List<Product> products = toList(productCaptor.getAllValues().get(1));
+        return toList(productCaptor.getAllValues().get(1));
+    }
 
-        assertEquals(26, products.size());
-        assertTrue(products.stream().allMatch(product -> product.getPrice().compareTo(BigDecimal.ZERO) > 0));
-        assertTrue(products.stream().allMatch(product -> !product.getCategories().isEmpty()));
-        assertTrue(products.stream().map(Product::getName).toList().containsAll(List.of(
-                "Смартфон Aurora X",
-                "Книга «Java без паники»",
-                "Кроссовки Urban Run"
-        )));
-
+    private List<User> capturedUsers() {
         ArgumentCaptor<Iterable<User>> userCaptor = iterableCaptor();
         verify(userRepository).saveAll(userCaptor.capture());
-        List<User> users = toList(userCaptor.getValue());
+        return toList(userCaptor.getValue());
+    }
 
-        assertEquals(5, users.size());
-        assertTrue(users.stream().allMatch(user -> "demo-password".equals(user.getPassword())));
-        assertTrue(users.stream().map(User::getEmail).toList().containsAll(List.of(
-                "marta.sokolova@astore.local",
-                "sofia.romanova@astore.local"
-        )));
-
+    private List<Order> capturedOrders() {
         ArgumentCaptor<Order> orderCaptor = ArgumentCaptor.forClass(Order.class);
         verify(orderRepository, times(5)).save(orderCaptor.capture());
+        return orderCaptor.getAllValues();
+    }
 
-        for (Order order : orderCaptor.getAllValues()) {
-            assertNotNull(order.getUser());
-            assertNotNull(order.getOrderDate());
-            assertNotNull(order.getStatus());
-            assertTrue(order.getTotalAmount().compareTo(BigDecimal.ZERO) > 0);
-            assertEquals(3, order.getItems().size());
-            order.getItems().forEach(item -> {
-                assertSame(order, item.getOrder());
-                assertNotNull(item.getProduct());
-                assertNotNull(item.getProductName());
-                assertNotNull(item.getPrice());
-            });
-        }
-
+    private List<Cart> capturedCarts() {
         ArgumentCaptor<Cart> cartCaptor = ArgumentCaptor.forClass(Cart.class);
         verify(cartRepository, times(3)).save(cartCaptor.capture());
+        return cartCaptor.getAllValues();
+    }
 
-        for (Cart cart : cartCaptor.getAllValues()) {
-            assertNotNull(cart.getUser());
-            assertEquals(2, cart.getItems().size());
-            for (CartItem item : cart.getItems()) {
-                assertSame(cart, item.getCart());
-                assertNotNull(item.getProduct());
-                assertTrue(item.getQuantity() > 0);
-            }
-        }
+    private boolean isValidSeededOrder(Order order) {
+        return order.getUser() != null
+                && order.getOrderDate() != null
+                && order.getStatus() != null
+                && order.getTotalAmount().compareTo(BigDecimal.ZERO) > 0
+                && order.getItems().size() == 3
+                && order.getItems().stream().allMatch(item -> item.getOrder() == order
+                && item.getProduct() != null
+                && item.getProductName() != null
+                && item.getPrice() != null);
+    }
+
+    private boolean isValidSeededCart(Cart cart) {
+        return cart.getUser() != null
+                && cart.getItems().size() == 2
+                && cart.getItems().stream().allMatch(item -> item.getCart() == cart
+                && item.getProduct() != null
+                && item.getQuantity() > 0);
     }
 
     private static <T> List<T> toList(Iterable<T> values) {
@@ -158,5 +203,14 @@ class DemoDataSeederTest {
     @SuppressWarnings({"unchecked", "rawtypes"})
     private static <T> ArgumentCaptor<Iterable<T>> iterableCaptor() {
         return (ArgumentCaptor) ArgumentCaptor.forClass(Iterable.class);
+    }
+
+    private record SeededDemoCatalog(
+            List<Category> categories,
+            List<Product> products,
+            List<User> users,
+            List<Order> orders,
+            List<Cart> carts
+    ) {
     }
 }
