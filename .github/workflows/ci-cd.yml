@@ -208,7 +208,6 @@ jobs:
     permissions: {}
     needs:
       - deploy-backend
-      - frontend-healthcheck
     if: github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
     timeout-minutes: 15
 
